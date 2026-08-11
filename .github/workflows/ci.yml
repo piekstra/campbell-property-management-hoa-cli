@@ -6,20 +6,33 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Don't pay for runs a newer push supersedes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
     name: fmt / clippy / test / build
-    # macOS so the apple-native Keychain backend compiles and is exercised on the
-    # platform this tool targets. Unit tests are pure logic and never touch the keychain.
-    runs-on: macos-latest
+    # Linux, not macOS: ~10x cheaper and sufficient here. The keyring backend
+    # compiles on Linux (dbus-secret-service, with libdbus installed below),
+    # unit tests are pure logic, and nothing in CI exercises the OS keychain at
+    # runtime — so macOS bought no coverage the release workflow doesn't already
+    # provide by building the apple-darwin targets.
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - name: Install Linux build deps
+        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all -- --check
       - run: cargo clippy --all-targets -- -D warnings
