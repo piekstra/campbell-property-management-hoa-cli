@@ -1,0 +1,27 @@
+{
+  "page": 1,
+  "lastPage": 1,
+  "totalItems": 2,
+  "member": [
+    {
+      "directoryId": 1052,
+      "boardTypeId": 1053,
+      "displayName": "Sample Owner",
+      "roleName": "President",
+      "boardDescription": "Board",
+      "address": "100 Sample St, Sample City, ST 00000",
+      "phone": "",
+      "email": "owner@example.invalid"
+    },
+    {
+      "directoryId": 1054,
+      "boardTypeId": 1055,
+      "displayName": "Sample Owner",
+      "roleName": "Vice President",
+      "boardDescription": "Board",
+      "address": "100 Sample St, Sample City, ST 00000",
+      "phone": "",
+      "email": "owner@example.invalid"
+    }
+  ]
+}

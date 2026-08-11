@@ -1,0 +1,19 @@
+{
+  "items": [
+    {
+      "id": 1050,
+      "type": "folder",
+      "name": "Homeowner Documents",
+      "lastModified": "2026-08-06T00:00:00.000Z",
+      "visibility": "public",
+      "documentUrl": "",
+      "fullPath": ""
+    }
+  ],
+  "breadcrumbs": [
+    {
+      "id": 1051,
+      "name": "Documents"
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "page": 1,
+  "lastPage": 1,
+  "totalItems": 1,
+  "member": [
+    {
+      "id": 1034,
+      "accountNumber": "SMP100000",
+      "association": {
+        "id": 1035,
+        "code": "SAMPLE",
+        "name": "Sample Association, Inc",
+        "accountStatus": "connected",
+        "subLedgers": [
+          {
+            "id": 1036,
+            "code": "SAMPLE",
+            "name": "General"
+          }
+        ],
+        "features": {
+          "vantacaPay": true,
+          "expressPay": true,
+          "guestPay": true,
+          "smsIntegration": true,
+          "domain": "https://portal.example.invalid",
+          "accountSetupModal": true
+        },
+        "paymentOptions": [],
+        "autoDraftSettings": {
+          "autoDraftDay": 4,
+          "generateDaysInAdvanced": 3,
+          "autoDraftAmount": "chargeAmount",
+          "autoDraftIncludeCharges": "currentMonthChargesOnly",
+          "applicationFee": 250.0,
+          "allowEnrollmentWithBalance": true,
+          "source": "bank",
+          "nextDraftDate": "2026-09-04T00:00:00.000Z"
+        }
+      },
+      "ledgers": null,
+      "address": {
+        "id": null,
+        "address1": "100 Sample St",
+        "address2": null,
+        "city": "Sample City",
+        "stateProvince": "ST",
+        "postalCode": "00000"
+      },
+      "blockLedger": false,
+      "blockPayments": false
+    }
+  ]
+}

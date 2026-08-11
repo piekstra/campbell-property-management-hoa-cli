@@ -1,0 +1,34 @@
+[
+  {
+    "accountNumber": "SMP100000",
+    "subLedgerId": 1001,
+    "accountWithSubCode": "SMP100000",
+    "balance": 0,
+    "blockLedger": false,
+    "blockLedgerMessage": "",
+    "blockPayments": false,
+    "associationName": "Sample Association, Inc",
+    "associationCode": "SAMPLE",
+    "ownerName": "Sample Owner",
+    "eMail": "owner@example.invalid",
+    "phoneNumber": "555-0100",
+    "propertyAddress": {
+      "id": null,
+      "address1": "100 Sample St",
+      "address2": null,
+      "city": "Sample City",
+      "stateProvince": "ST",
+      "postalCode": "00000"
+    },
+    "homeownerId": 1002,
+    "associationId": 100,
+    "ownerId": 1003,
+    "managementCompany": "Sample Property Management",
+    "autoDraftEnrolled": true,
+    "vantacaPayEnabled": true,
+    "nextChargeDate": "2026-10-01T00:00:00.000Z",
+    "portalStyle": "home",
+    "isPrimaryOwner": true,
+    "maximumPaymentAmount": 250.0
+  }
+]

@@ -1,0 +1,143 @@
+{
+  "page": 1,
+  "pageSize": 15,
+  "totalResults": 32,
+  "totalPages": 3,
+  "documents": [
+    {
+      "id": 1056,
+      "type": "file",
+      "name": "12.31.23 Final Financial Statement.pdf",
+      "lastModified": "2026-08-06T21:24:29.540Z",
+      "visibility": "homeowner",
+      "documentUrl": "https://example.invalid/document-redacted",
+      "fullPath": "Documents/Homeowner Documents/Audit & Taxes/2023/"
+    },
+    {
+      "id": 1057,
+      "type": "file",
+      "name": "12.31.24 Final Financial Statement.pdf",
+      "lastModified": "2026-08-06T21:24:29.540Z",
+      "visibility": "homeowner",
+      "documentUrl": "https://example.invalid/document-redacted",
+      "fullPath": "Documents/Homeowner Documents/Audit & Taxes/2024/"
+    },
+    {
+      "id": 1058,
+      "type": "file",
+      "name": "12.31.25 Final Financial Statement.pdf",
+      "lastModified": "2026-08-06T21:24:29.540Z",
+      "visibility": "homeowner",
+      "documentUrl": "https://example.invalid/document-redacted",
+      "fullPath": "Documents/Homeowner Documents/Audit & Taxes/2025/"
+    },
+    {
+      "id": 1059,
+      "type": "file",
+      "name": "2022 Sample Association HOA - Management Agreement.pdf",
+      "lastModified": "2026-08-06T21:24:29.540Z",
+      "visibility": "public",
+      "documentUrl": "https://example.invalid/document-redacted",
+      "fullPath": "Documents/Homeowner Documents/Association Contracts/"
+    },
+    {
+      "id": 1060,
+      "type": "file",
+      "name": "20221122 Recorded Declaration of Covenants; Sample Association search.pdf",
+      "lastModified": "2026-08-06T21:24:29.540Z",
+      "visibility": "public",
+      "documentUrl": "https://example.invalid/document-redacted",
+      "fullPath": "Documents/Homeowner Documents/Governing Documents/Declaration/"
+    },
+    {
+      "id": 1061,
+      "type": "file",
+      "name": "20241210 Certificate of Amendment to Declaration.pdf",
+      "lastModified": "2026-08-06T21:24:29.540Z",
+      "visibility": "public",
+      "documentUrl": "https://example.invalid/document-redacted",
+      "fullPath": "Documents/Homeowner Documents/Governing Documents/Amendments/"
+    },
+    {
+      "id": 1062,
+      "type": "file",
+      "name": "Amended and Restated Articles on Inc..pdf",
+      "lastModified": "2026-08-06T21:24:29.540Z",
+      "visibility": "public",
+      "documentUrl": "https://example.invalid/document-redacted",
+      "fullPath": "Documents/Homeowner Documents/Governing Documents/Articles of Incorporation/"
+    },
+    {
+      "id": 1063,
+      "type": "file",
+      "name": "Annual Meeting minutes 11.14.24.pdf",
+      "lastModified": "2026-08-06T21:24:29.540Z",
+      "visibility": "public",
+      "documentUrl": "https://example.invalid/document-redacted",
+      "fullPath": "Documents/Homeowner Documents/Meeting Minutes/"
+    },
+    {
+      "id": 1064,
+      "type": "file",
+      "name": "Annual Meeting minutes 11.28.23.pdf",
+      "lastModified": "2026-08-06T21:24:29.540Z",
+      "visibility": "public",
+      "documentUrl": "https://example.invalid/document-redacted",
+      "fullPath": "Documents/Homeowner Documents/Meeting Minutes/"
+    },
+    {
+      "id": 1065,
+      "type": "file",
+      "name": "Association Records Retention Policy.pdf",
+      "lastModified": "2026-08-06T21:24:29.540Z",
+      "visibility": "public",
+      "documentUrl": "https://example.invalid/document-redacted",
+      "fullPath": "Documents/Homeowner Documents/Records Policy/"
+    },
+    {
+      "id": 1066,
+      "type": "file",
+      "name": "ByLaws.pdf",
+      "lastModified": "2026-08-06T21:24:29.540Z",
+      "visibility": "public",
+      "documentUrl": "https://example.invalid/document-redacted",
+      "fullPath": "Documents/Homeowner Documents/Governing Documents/Bylaws/"
+    },
+    {
+      "id": 1067,
+      "type": "file",
+      "name": "CAD-2025 TAX RETURN AND eFILE FORM- Signed.pdf",
+      "lastModified": "2026-08-06T21:24:29.540Z",
+      "visibility": "homeowner",
+      "documentUrl": "https://example.invalid/document-redacted",
+      "fullPath": "Documents/Homeowner Documents/Audit & Taxes/2025/"
+    },
+    {
+      "id": 1068,
+      "type": "file",
+      "name": "CAD-2026 APPROVED BUDGET- Signed.pdf",
+      "lastModified": "2026-08-06T21:24:29.540Z",
+      "visibility": "public",
+      "documentUrl": "https://example.invalid/document-redacted",
+      "fullPath": "Documents/Homeowner Documents/Budgets/"
+    },
+    {
+      "id": 1069,
+      "type": "file",
+      "name": "Sample Association  Programming Agreement.pdf",
+      "lastModified": "2026-08-06T21:24:29.540Z",
+      "visibility": "public",
+      "documentUrl": "https://example.invalid/document-redacted",
+      "fullPath": "Documents/Homeowner Documents/Association Contracts/"
+    },
+    {
+      "id": 1070,
+      "type": "file",
+      "name": "Sample Association HOA QUARTERLY FOUNTAIN MAINTENANCE CONTRACT .pdf",
+      "lastModified": "2026-08-06T21:24:29.540Z",
+      "visibility": "public",
+      "documentUrl": "https://example.invalid/document-redacted",
+      "fullPath": "Documents/Homeowner Documents/Association Contracts/"
+    }
+  ]
+}

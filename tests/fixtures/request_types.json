@@ -1,0 +1,32 @@
+{
+  "requestTypes": [
+    {
+      "actionTypeId": "11",
+      "description": "Billing Question",
+      "categoryId": 1046,
+      "categoryName": "Homeowner Request",
+      "requiresAssociation": true
+    },
+    {
+      "actionTypeId": "1021",
+      "description": "Fee Waiver Request",
+      "categoryId": 1047,
+      "categoryName": "Homeowner Request",
+      "requiresAssociation": true
+    },
+    {
+      "actionTypeId": "12",
+      "description": "General Question",
+      "categoryId": 1048,
+      "categoryName": "Homeowner Request",
+      "requiresAssociation": true
+    },
+    {
+      "actionTypeId": "1032",
+      "description": "Work Order",
+      "categoryId": 1049,
+      "categoryName": "Work Orders",
+      "requiresAssociation": true
+    }
+  ]
+}

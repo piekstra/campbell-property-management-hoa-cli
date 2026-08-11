@@ -1,0 +1,38 @@
+[
+  {
+    "id": "ad_1025",
+    "accountNumber": "SMP100000",
+    "subLedgerId": 1026,
+    "accountWithSubCode": "SMP100000",
+    "associationName": "Sample Association, Inc",
+    "propertyAddress": {
+      "id": null,
+      "address1": "100 Sample St",
+      "address2": null,
+      "city": "Sample City",
+      "stateProvince": "ST",
+      "postalCode": "00000"
+    },
+    "enrolled": true,
+    "startDate": "2025-12-31T00:00:00.000Z",
+    "nextPullDate": "2026-09-04T00:00:00.000Z",
+    "autoDraftSettings": {
+      "autoDraftDay": 4,
+      "generateDaysInAdvanced": 3,
+      "autoDraftAmount": "chargeAmount",
+      "autoDraftIncludeCharges": "currentMonthChargesOnly",
+      "applicationFee": 250,
+      "allowEnrollmentWithBalance": true,
+      "source": "bank",
+      "nextDraftDate": "2026-09-04T00:00:00.000Z"
+    },
+    "bankAccountLast4": "0000",
+    "source": "bank",
+    "ownerId": 1027,
+    "userId": 1028,
+    "paymentMethodId": null,
+    "acknowledgementId": null,
+    "balance": 0,
+    "unavailable": false
+  }
+]

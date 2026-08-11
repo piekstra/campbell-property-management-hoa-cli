@@ -1,0 +1,57 @@
+[
+  {
+    "id": "00000000-0000-4000-8000-000000000001",
+    "userId": 1029,
+    "amount": null,
+    "type": "autoDraft",
+    "notes": "",
+    "anchorDate": "2025-12-31T00:00:00.000Z",
+    "interval": "monthly",
+    "account": {
+      "accountNumber": "SMP100000",
+      "subLedgerId": 1030,
+      "accountWithSubCode": "SMP100000",
+      "associationName": "Sample Association, Inc",
+      "associationCode": null,
+      "firstName": null,
+      "lastName": null,
+      "propertyAddress": {
+        "id": null,
+        "address1": "100 Sample St",
+        "address2": null,
+        "city": "Sample City",
+        "stateProvince": "ST",
+        "postalCode": "00000"
+      },
+      "homeownerId": 1031,
+      "ownerId": 1032,
+      "associationId": 100,
+      "blockPayments": false,
+      "blockLedger": false,
+      "portalStyle": null,
+      "isPrimaryOwner": false,
+      "maxPaymentAmount": 0
+    },
+    "paymentMethod": {
+      "id": "ad_1033",
+      "billingName": null,
+      "card": null,
+      "bankAccount": {
+        "last4": "0000",
+        "routingNumber": null,
+        "accountType": null,
+        "bankName": "Sample Bank"
+      },
+      "isDefaultPaymentMethod": false,
+      "paymentMethodType": "eCheck"
+    },
+    "acknowledgementId": null,
+    "nextPaymentDate": "2026-09-04T00:00:00.000Z",
+    "cancelled": false,
+    "created": "0001-01-01T00:00:00.000Z",
+    "lastPaymentProcessedDate": null,
+    "ownerId": null,
+    "paymentOptionType": "autoDraftBankAccount",
+    "payFullBalance": false
+  }
+]

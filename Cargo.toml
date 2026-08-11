@@ -1,0 +1,39 @@
+[package]
+name = "campbell-property-management-hoa-cli"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.88"
+description = "Campbell Property Management (Vantaca) HOA homeowner portal from the command line — Keychain-secured, agent-friendly. Unofficial."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/piekstra/campbell-property-management-hoa-cli"
+homepage = "https://github.com/piekstra/campbell-property-management-hoa-cli"
+readme = "README.md"
+keywords = ["vantaca", "hoa", "property-management", "homeowner-portal", "cli"]
+categories = ["command-line-utilities"]
+
+[[bin]]
+name = "cpmfl"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive", "env"] }
+clap_complete = "4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+pk-cli-core = { git = "https://github.com/piekstra/cli-common", tag = "v0.3.0", features = ["reqwest"] }
+pk-cli-secrets = { git = "https://github.com/piekstra/cli-common", tag = "v0.3.0" }
+pk-cli-config = { git = "https://github.com/piekstra/cli-common", tag = "v0.3.0" }
+pk-cli-selfupdate = { git = "https://github.com/piekstra/cli-common", tag = "v0.3.0" }
+pk-cli-auth = { git = "https://github.com/piekstra/cli-common", tag = "v0.3.0" }
+pk-cli-http = { git = "https://github.com/piekstra/cli-common", tag = "v0.3.0" }
+pk-cli-utility = { git = "https://github.com/piekstra/cli-common", tag = "v0.3.0" }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
+
+[dev-dependencies]
+assert_cmd = "2"
+predicates = "3"
+
+[profile.release]
+strip = true
+lto = true
+opt-level = "z"

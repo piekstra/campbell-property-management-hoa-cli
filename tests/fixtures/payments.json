@@ -1,0 +1,77 @@
+{
+  "page": 1,
+  "lastPage": 2,
+  "totalItems": 10,
+  "member": [
+    {
+      "id": "3440680",
+      "associationId": 100,
+      "associationName": "Sample Association, Inc",
+      "account": "SMP100000",
+      "subLedgerId": 1019,
+      "accountWithSubCode": "SMP100000",
+      "date": "2026-07-04T00:00:00.000Z",
+      "description": "ACH ...0000",
+      "paymentType": "ACH Draft",
+      "amount": 250.0,
+      "pending": false,
+      "guestPayment": false
+    },
+    {
+      "id": "3198362",
+      "associationId": 100,
+      "associationName": "Sample Association, Inc",
+      "account": "SMP100000",
+      "subLedgerId": 1020,
+      "accountWithSubCode": "SMP100000",
+      "date": "2026-04-04T00:00:00.000Z",
+      "description": "ACH ...0000",
+      "paymentType": "ACH Draft",
+      "amount": 250.0,
+      "pending": false,
+      "guestPayment": false
+    },
+    {
+      "id": "2951992",
+      "associationId": 100,
+      "associationName": "Sample Association, Inc",
+      "account": "SMP100000",
+      "subLedgerId": 1021,
+      "accountWithSubCode": "SMP100000",
+      "date": "2026-01-04T00:00:00.000Z",
+      "description": "ACH ...0000",
+      "paymentType": "ACH Draft",
+      "amount": 250.0,
+      "pending": false,
+      "guestPayment": false
+    },
+    {
+      "id": "2712024",
+      "associationId": 100,
+      "associationName": "Sample Association, Inc",
+      "account": "SMP100000",
+      "subLedgerId": 1022,
+      "accountWithSubCode": "SMP100000",
+      "date": "2025-10-04T00:00:00.000Z",
+      "description": "ACH ...0000",
+      "paymentType": "ACH Draft",
+      "amount": 250.0,
+      "pending": false,
+      "guestPayment": false
+    },
+    {
+      "id": "2490743",
+      "associationId": 100,
+      "associationName": "Sample Association, Inc",
+      "account": "SMP100000",
+      "subLedgerId": 1023,
+      "accountWithSubCode": "SMP100000",
+      "date": "2025-07-04T00:00:00.000Z",
+      "description": "ACH ...0000",
+      "paymentType": "ACH Draft",
+      "amount": 250.0,
+      "pending": false,
+      "guestPayment": false
+    }
+  ]
+}

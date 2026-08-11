@@ -1,0 +1,8 @@
+{
+  "vantacaPay": true,
+  "expressPay": true,
+  "guestPay": true,
+  "smsIntegration": true,
+  "domain": "https://portal.example.invalid",
+  "accountSetupModal": true
+}

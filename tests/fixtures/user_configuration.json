@@ -1,0 +1,13 @@
+{
+  "billingTextNotificationsAvailable": true,
+  "emailReceiptAvailable": true,
+  "availableGeneralCommunicationPreferences": [
+    "paper",
+    "email"
+  ],
+  "availableBillingCommunicationPreferences": [
+    "paper",
+    "email"
+  ],
+  "casb392Enabled": false
+}

@@ -1,0 +1,40 @@
+{
+  "page": 1,
+  "lastPage": 1,
+  "totalItems": 3,
+  "member": [
+    {
+      "id": 1037,
+      "typeId": 1038,
+      "type": "Work Order",
+      "categoryId": 1039,
+      "category": "Work Orders",
+      "subject": "Sample request subject",
+      "closed": true,
+      "status": "Closed",
+      "submitted": "2024-10-13T20:23:14.880Z"
+    },
+    {
+      "id": 1040,
+      "typeId": 1041,
+      "type": "ARC Request",
+      "categoryId": 1042,
+      "category": "ARC Requests",
+      "subject": "",
+      "closed": true,
+      "status": "Complete - Approved",
+      "submitted": "2024-05-02T14:55:51.600Z"
+    },
+    {
+      "id": 1043,
+      "typeId": 1044,
+      "type": "ARC Request",
+      "categoryId": 1045,
+      "category": "ARC Requests",
+      "subject": "",
+      "closed": true,
+      "status": "Complete - Approved",
+      "submitted": "2024-02-08T16:02:04.150Z"
+    }
+  ]
+}

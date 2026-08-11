@@ -1,0 +1,13 @@
+{
+  "billingCommunicationPreference": "email",
+  "email": "owner@example.invalid",
+  "generalCommunicationPreference": "email",
+  "hideEmailInDirectory": true,
+  "hideNameInDirectory": true,
+  "hidePhoneInDirectory": true,
+  "hidePropertyInDirectory": true,
+  "mailRelTypeId": "homeownerAddress",
+  "mailingAddressId": 1000,
+  "receivePayBillingText": false,
+  "sendPayConfirmationEmail": false
+}
