@@ -37,7 +37,7 @@ clean:
 # future install.
 install: SIGN_TARGET = $${CARGO_INSTALL_ROOT:-$$HOME/.cargo}/bin/$(BIN)
 install:
-	$(CARGO) install --path . --force
+	$(CARGO) install --path . --force --locked
 	@$(SIGN)
 
 deps:
