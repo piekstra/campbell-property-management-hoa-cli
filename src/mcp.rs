@@ -112,15 +112,21 @@ pub struct LivePortal;
 
 impl LivePortal {
     fn config() -> Result<Config, CliError> {
-        ConfigStore::new("cpmfl").load().map_err(|e| match e {
-            // No tool argument can fix a bad config file.
+        ConfigStore::new("cpmfl").load().map_err(Self::bad_config)
+    }
+
+    /// A command's usage error, for a bad config file. No tool argument can fix it.
+    fn bad_config(e: CliError) -> CliError {
+        match e {
             CliError::Usage(message) => CliError::Other(message),
             other => other,
-        })
+        }
     }
 
     fn portal() -> Result<Portal, CliError> {
         let cfg = Self::config()?;
+        // Before the keychain, so a refusal raises no dialog.
+        cfg.require_secure_urls().map_err(Self::bad_config)?;
         let creds = CredentialStore::for_binary("cpmfl");
         Portal::with_live_token(&cfg, resolve_token(&creds, TOKEN_ENV)?)
     }

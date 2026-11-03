@@ -30,6 +30,7 @@
 //! part of this CLI.
 
 use pk_cli_auth::token as jwt;
+use pk_cli_core::transport::{same_host_redirects, secure_redirects};
 use pk_cli_core::CliError;
 use pk_cli_secrets::{CredentialStore, Secret};
 use serde_json::Value;
@@ -59,7 +60,10 @@ impl Portal {
         username: &str,
         password: &Secret,
     ) -> Result<Authenticated, CliError> {
-        let http = pk_cli_http::client(BIN, env!("CARGO_PKG_VERSION"))?;
+        cfg.require_secure_urls()?;
+        // The password is in the body, and reqwest re-sends a body on a 307 or 308 to
+        // whatever host it names, so this client stays on the service's host.
+        let http = http_client(same_host_redirects())?;
         let url = format!("{}/Users/Authenticate", cfg.base_url(Service::Users));
         let origin = cfg.portal_url();
         let resp = http
@@ -71,7 +75,7 @@ impl Portal {
                 "password": password.expose(),
             }))
             .send()
-            .map_err(|e| CliError::Upstream(format!("contacting the portal: {e}")))?;
+            .map_err(|e| upstream("contacting the portal", e))?;
 
         let status = resp.status().as_u16();
         let body: Value = read_json(resp)?;
@@ -119,6 +123,8 @@ impl Portal {
 
     /// Replay the cached bearer token from the keychain.
     pub fn from_cached_token(cfg: &Config, creds: &CredentialStore) -> Result<Portal, CliError> {
+        // Before the keychain, so a refusal raises no dialog.
+        cfg.require_secure_urls()?;
         let token = creds
             .get(TOKEN_ACCOUNT)?
             .ok_or_else(|| CliError::Auth("not logged in — run `cpmfl auth login`".into()))?;
@@ -136,8 +142,9 @@ impl Portal {
     }
 
     pub fn with_token(cfg: &Config, token: Secret) -> Result<Portal, CliError> {
+        cfg.require_secure_urls()?;
         Ok(Portal {
-            http: pk_cli_http::client(BIN, env!("CARGO_PKG_VERSION"))?,
+            http: http_client(secure_redirects())?,
             cfg: cfg.clone(),
             token,
         })
@@ -154,7 +161,7 @@ impl Portal {
             .request(service, path)
             .query(query)
             .send()
-            .map_err(|e| CliError::Upstream(format!("contacting the portal: {e}")))?;
+            .map_err(|e| upstream("contacting the portal", e))?;
         self.interpret(resp)
     }
 
@@ -168,7 +175,7 @@ impl Portal {
         let resp = self
             .request(service, path)
             .send()
-            .map_err(|e| CliError::Upstream(format!("contacting the portal: {e}")))?;
+            .map_err(|e| upstream("contacting the portal", e))?;
 
         let status = resp.status().as_u16();
         if !(200..300).contains(&status) {
@@ -184,7 +191,7 @@ impl Portal {
             .map(str::to_string);
         let bytes = resp
             .bytes()
-            .map_err(|e| CliError::Upstream(format!("reading the portal response: {e}")))?
+            .map_err(|e| upstream("reading the portal response", e))?
             .to_vec();
         Ok((bytes, content_type))
     }
@@ -217,6 +224,25 @@ impl Portal {
     }
 }
 
+/// The family's client with the given redirect policy.
+fn http_client(
+    redirects: reqwest::redirect::Policy,
+) -> Result<reqwest::blocking::Client, CliError> {
+    pk_cli_http::builder(BIN, env!("CARGO_PKG_VERSION"))
+        .redirect(redirects)
+        .build()
+        .map_err(|e| CliError::Other(format!("failed to build HTTP client: {e}")))
+}
+
+/// A transport failure in cli-common's wording: the origin and not the whole URL,
+/// whose path or query can carry an account id, plus a refused redirect's reason.
+fn upstream(context: &str, e: reqwest::Error) -> CliError {
+    match CliError::from(e) {
+        CliError::Upstream(message) => CliError::Upstream(format!("{context}: {message}")),
+        other => other,
+    }
+}
+
 /// Map a non-2xx status onto the family's exit-code contract, preferring the
 /// portal's own `message`/`detail` over a bare status line.
 fn status_error(status: u16, body: &Value) -> CliError {
@@ -244,7 +270,7 @@ fn status_error(status: u16, body: &Value) -> CliError {
 fn read_json(resp: reqwest::blocking::Response) -> Result<Value, CliError> {
     let text = resp
         .text()
-        .map_err(|e| CliError::Upstream(format!("reading the portal response: {e}")))?;
+        .map_err(|e| upstream("reading the portal response", e))?;
     if text.trim().is_empty() {
         return Ok(Value::Null);
     }
@@ -283,6 +309,119 @@ fn now_unix() -> u64 {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    /// Answers one request on 127.0.0.1 with a redirect to `location`.
+    fn redirecting(status: &'static str, location: String) -> String {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        std::thread::spawn(move || {
+            if let Ok((mut stream, _)) = listener.accept() {
+                let mut buf = [0u8; 4096];
+                let _ = std::io::Read::read(&mut stream, &mut buf);
+                let _ = std::io::Write::write_all(
+                    &mut stream,
+                    format!(
+                        "HTTP/1.1 {status}\r\nLocation: {location}\r\n\
+                         Content-Length: 0\r\nConnection: close\r\n\r\n"
+                    )
+                    .as_bytes(),
+                );
+            }
+        });
+        format!("http://127.0.0.1:{port}")
+    }
+
+    fn redirecting_to(location: &str) -> String {
+        redirecting("302 Found", location.to_string())
+    }
+
+    #[test]
+    fn the_password_is_not_sent_on_to_another_host() {
+        let other = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        other.set_nonblocking(true).unwrap();
+        let elsewhere = format!("http://{}/steal", other.local_addr().unwrap());
+        let cfg = Config {
+            users_url: Some(redirecting("307 Temporary Redirect", elsewhere)),
+            ..Config::default()
+        };
+        let e = Portal::authenticate(&cfg, "dummy-user", &Secret::new("dummy-password"))
+            .err()
+            .unwrap();
+        let CliError::Upstream(message) = e else {
+            panic!("{e}");
+        };
+        assert!(message.contains("another host"), "{message}");
+        assert_eq!(
+            other.accept().unwrap_err().kind(),
+            std::io::ErrorKind::WouldBlock,
+            "the other host was contacted"
+        );
+    }
+
+    #[test]
+    fn a_service_url_off_https_is_refused_before_the_keychain() {
+        let cfg = Config {
+            pay_url: Some("http://portal.example/pay".into()),
+            ..Config::default()
+        };
+        let creds = CredentialStore::new("piekstra.cpmfl.test-no-such-item");
+        let e = Portal::from_cached_token(&cfg, &creds).err().unwrap();
+        assert!(matches!(e, CliError::Usage(_)), "{e}");
+    }
+
+    #[test]
+    fn a_service_url_off_https_gets_no_password_and_no_token() {
+        for cfg in [
+            Config {
+                users_url: Some("http://portal.example/api".into()),
+                ..Config::default()
+            },
+            Config {
+                pay_url: Some("http://portal.example/api".into()),
+                ..Config::default()
+            },
+        ] {
+            let e = Portal::authenticate(&cfg, "dummy-user", &Secret::new("dummy-password"))
+                .err()
+                .unwrap();
+            assert!(matches!(e, CliError::Usage(_)), "{e}");
+            let e = Portal::with_token(&cfg, Secret::new("dummy-token"))
+                .err()
+                .unwrap();
+            assert!(matches!(e, CliError::Usage(_)), "{e}");
+        }
+    }
+
+    #[test]
+    fn any_https_override_and_http_to_this_machine_pass() {
+        let cfg = Config {
+            users_url: Some("https://users.example/api".into()),
+            pay_url: Some("http://127.0.0.1:1/pay".into()),
+            ..Config::default()
+        };
+        assert!(cfg.require_secure_urls().is_ok());
+    }
+
+    #[test]
+    fn a_redirect_off_https_is_refused_and_the_error_prints_no_url_past_the_origin() {
+        let cfg = Config {
+            users_url: Some(redirecting_to("http://portal.example/next")),
+            ..Config::default()
+        };
+        let portal = Portal::with_token(&cfg, Secret::new("dummy-token")).unwrap();
+        let e = portal
+            .get(
+                Service::Users,
+                "/Profile",
+                &[("account", "dummy-account".into())],
+            )
+            .unwrap_err();
+        let CliError::Upstream(message) = e else {
+            panic!("{e}");
+        };
+        assert!(message.contains("leaves https"), "{message}");
+        assert!(!message.contains("dummy-account"), "{message}");
+    }
 
     #[test]
     fn provider_message_prefers_message_then_detail() {

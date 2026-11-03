@@ -3,6 +3,8 @@
 //! The portal password and the cached bearer token live in the OS keychain
 //! (service `piekstra.cpmfl`), never here.
 
+use pk_cli_core::transport::require_secure_url;
+use pk_cli_core::CliError;
 use serde::{Deserialize, Serialize};
 
 /// Vantaca splits the portal across per-domain microservices. A homeowner read
@@ -99,6 +101,19 @@ impl Config {
                 .clone()
                 .unwrap_or_else(|| DEFAULT_PAY_URL.into()),
         }
+    }
+
+    /// Refuse a service URL off `https`, since the password or the bearer token goes
+    /// to each. An override is the user's to set, so any `https` host passes.
+    pub fn require_secure_urls(&self) -> Result<(), CliError> {
+        [
+            Service::Users,
+            Service::Associations,
+            Service::ActionItems,
+            Service::Pay,
+        ]
+        .into_iter()
+        .try_for_each(|service| require_secure_url(&self.base_url(service)))
     }
 
     /// The origin identifying the management company.

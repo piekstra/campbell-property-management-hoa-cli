@@ -302,3 +302,22 @@ fn the_surface_carries_no_mutating_commands() {
         }
     }
 }
+
+/// Signing in reads and can overwrite the stored password, so a service URL off https
+/// stops it first.
+#[test]
+fn auth_login_refuses_a_service_url_off_https_before_the_keychain() {
+    let config_home = std::env::temp_dir().join(format!("cpmfl-surface-{}", std::process::id()));
+    std::fs::create_dir_all(config_home.join("cpmfl")).unwrap();
+    std::fs::write(
+        config_home.join("cpmfl/config.json"),
+        r#"{"pay_url": "http://portal.example/pay", "username": "dummy@example.com"}"#,
+    )
+    .unwrap();
+    cpmfl()
+        .args(["auth", "login", "--non-interactive"])
+        .env("XDG_CONFIG_HOME", &config_home)
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("only https"));
+}
