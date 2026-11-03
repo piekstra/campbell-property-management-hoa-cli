@@ -121,6 +121,19 @@ fn completions_render_for_every_shell() {
     }
 }
 
+#[test]
+fn no_color_in_the_environment_never_fails_a_command() {
+    // Any non-empty NO_COLOR disables color (no-color.org); parsed as a
+    // bool, the conventional NO_COLOR=1 was a usage error.
+    for v in ["1", "true", "0", ""] {
+        cpmfl()
+            .env("NO_COLOR", v)
+            .args(["completions", "bash"])
+            .assert()
+            .success();
+    }
+}
+
 /// Bad arguments must be rejected as usage errors (exit 2) *before* anything
 /// reaches the keychain or the network — so `--help` and typos never prompt,
 /// hang, or hit the portal.
