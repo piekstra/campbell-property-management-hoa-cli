@@ -157,6 +157,8 @@ $ cpmfl mcp --new-token            # once: a bearer token, saved in the keychain
 $ cpmfl mcp --http --port 8750     # serve on 127.0.0.1 only
 ```
 
+`--http` takes the token from `$CPMFL_MCP_TOKEN` if it is set, then from the keychain.
+
 The connector, [cli-common's `connector/`](https://github.com/piekstra/cli-common/tree/main/connector#tools-from-your-computer-home-modules),
 reaches that port through a Cloudflare Tunnel in your account; its README walks through
 the tunnel, the VPC service, a launchd agent that keeps the server running, and the

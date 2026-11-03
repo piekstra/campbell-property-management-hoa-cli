@@ -3,6 +3,13 @@
 All notable changes to `cpmfl` are documented here. Newest first. The project follows
 [SemVer](https://semver.org/); until 1.0, minors carry the breaking-change signal.
 
+## 0.2.1 — 2026-11-03
+
+- `cpmfl auth logout --forget` also removes the `mcp --http` token, and says what a running
+  server and `$CPMFL_MCP_TOKEN` still need.
+- The release action that holds the write token is pinned to a commit.
+- cli-common v0.22.0.
+
 ## 0.2.0 — 2026-11-03
 
 - `cpmfl mcp`: five read-only tools for Claude: `campbell_balance`, `campbell_bills`,

@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "cpmfl",
   "display_name": "Campbell Property Management HOA (cpmfl)",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Read-only access to your own Campbell Property Management HOA balance, bills, payments, requests and association documents, through the open-source cpmfl CLI.",
   "long_description": "Ask Claude about your HOA account at Campbell Property Management: what you owe and when the next charge lands, what past charges came to, which payments posted, where your requests stand, and what the association has published. Five read-only tools, campbell_balance, campbell_bills, campbell_payments, campbell_requests and campbell_documents; nothing can make a payment, change autopay, submit a request or change anything at the portal. The extension asks for no password: first install the cpmfl CLI and run `cpmfl auth login` in a terminal. That caches a session token in your OS keychain, and the bundled cpmfl reads it from there. When the session expires, run `cpmfl auth login` again. On macOS the first call asks for keychain access; choose Always Allow. What the tools return (balance, charges, payments, property address, requests) goes to Claude as part of your conversation. Unofficial; not affiliated with Campbell Property Management or Vantaca.",
   "author": {

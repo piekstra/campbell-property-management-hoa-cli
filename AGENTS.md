@@ -10,7 +10,7 @@ Property Management runs at `portal.campbellproperty.com`. A thin,
 portal-specific layer over the shared
 [`cli-common`](https://github.com/piekstra/cli-common) `pk-cli-*` crates
 (auth, http, config, secrets, self-update, utility profile, MCP), pinned to
-**v0.21.0**. This repo owns only the portal client, the commands, their DTOs, and
+**v0.22.0**. This repo owns only the portal client, the commands, their DTOs, and
 the tools `cpmfl mcp` serves.
 
 There is no official API. Everything targets the undocumented JSON endpoints
