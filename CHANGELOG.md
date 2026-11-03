@@ -3,6 +3,16 @@
 All notable changes to `cpmfl` are documented here. Newest first. The project follows
 [SemVer](https://semver.org/); until 1.0, minors carry the breaking-change signal.
 
+## 0.2.2 — 2026-11-03
+
+- Each service URL must be `https`, or `http` to this machine, before the password or the
+  bearer token goes to it. A command and a tool refuse one off `https` before they read
+  the keychain.
+- A redirect that leaves `https` is an error.
+- A network failure names the service's origin, not the whole URL, and says why a redirect
+  was refused.
+- cli-common v0.24.0, up from v0.22.0.
+
 ## 0.2.1 — 2026-11-03
 
 - `cpmfl auth logout --forget` also removes the `mcp --http` token, and says what a running

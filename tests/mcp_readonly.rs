@@ -159,9 +159,13 @@ struct Server {
 
 impl Server {
     fn start(port: u16) -> Self {
+        Self::start_in(config_home(port))
+    }
+
+    fn start_in(config_home: PathBuf) -> Self {
         let mut child = Command::new(env!("CARGO_BIN_EXE_cpmfl"))
             .arg("mcp")
-            .env("XDG_CONFIG_HOME", config_home(port))
+            .env("XDG_CONFIG_HOME", config_home)
             .env("CPMFL_TOKEN", TOKEN)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -291,6 +295,22 @@ fn a_rejected_session_is_an_auth_error_and_nothing_is_sent_but_the_read() {
         assert!(request.starts_with("GET "), "{request}");
         assert!(!request.contains("Authenticate"), "{request}");
     }
+}
+
+/// The service URLs come from the config, and the token goes to them.
+#[test]
+fn a_tool_refuses_a_service_url_off_https() {
+    let home = config_home(1);
+    std::fs::write(
+        home.join("cpmfl/config.json"),
+        json!({"pay_url": "http://portal.example/pay"}).to_string(),
+    )
+    .unwrap();
+    let mut server = Server::start_in(home);
+    let result = server.call("campbell_balance", json!({}));
+    assert_eq!(result["isError"], true, "{result}");
+    let text = result["content"][0]["text"].as_str().unwrap();
+    assert!(text.contains("only https"), "{text}");
 }
 
 /// A fixture with one top-level field gone or set, as a changed API would answer.
