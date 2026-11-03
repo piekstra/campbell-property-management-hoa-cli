@@ -166,6 +166,14 @@ so re-encoding the whole URL double-encodes them and breaks the SAS signature
 percent-encoded, and `documents download` avoids the SAS URL entirely by
 streaming `Documents/{id}` through the portal.
 
+### What `cpmfl mcp` reads
+
+The tools use `GET /account`, `/Ledger`, `/Payment`, `/Charge`, `/HomeownerRequests`,
+`/associations/{a}/Directories` and `/associations/{a}/Documents/Search`, and nothing
+else. `/Charge` rows name no account, so on a login with several accounts the bills tool
+leaves them out. A tool drops each document row's `documentUrl`: a SAS URL works
+without a sign-in.
+
 ### Reads that exist but aren't wired up
 
 `GET {associations}/associations/{a}/directory/types`,

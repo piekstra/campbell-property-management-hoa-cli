@@ -327,6 +327,16 @@ fn homeowner_preferences_shape() {
     assert!(v["mailingAddressId"].is_number());
 }
 
+/// A provider's own payment ids run to seven digits; a scrubbed one is short.
+#[test]
+fn payment_ids_are_dummies() {
+    let v = fixture("payments.json");
+    for p in v["member"].as_array().unwrap() {
+        let id = p["id"].as_str().unwrap();
+        assert!(id.len() <= 4, "`{id}` is not a scrubbed dummy");
+    }
+}
+
 /// Mechanical enforcement of `tests/fixtures/README.md`.
 ///
 /// Deliberately an **allow**-list of dummy values rather than a deny-list of

@@ -10,6 +10,7 @@ mod client;
 mod commands;
 mod config;
 mod dates;
+mod mcp;
 
 use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete::Shell;
@@ -101,6 +102,12 @@ enum Command {
     Association,
     /// Raw portal API passthrough (GET only).
     Api(api::ApiArgs),
+    /// Serve read-only tools to Claude and other MCP clients.
+    ///
+    /// Over stdio for Claude Code and Claude Desktop, or with --http on
+    /// 127.0.0.1 for your own Cloudflare Worker (claude.ai on the web and
+    /// mobile). No tool can make a payment or change anything at the portal.
+    Mcp(pk_cli_mcp::McpArgs),
     /// Update to the latest release from GitHub.
     SelfUpdate(SelfUpdateArgs),
     /// Print a shell completion script.
@@ -141,6 +148,11 @@ fn main() {
 }
 
 fn run(cli: &Cli) -> Result<(), CliError> {
+    // Before the config is read: listing the tools touches no file, and a bad
+    // config must not stop the server from answering with a usable error.
+    if let Command::Mcp(args) = &cli.command {
+        return pk_cli_mcp::run(args, mcp::tools());
+    }
     let store = ConfigStore::new(BIN);
     let creds = CredentialStore::for_binary(BIN);
     let cfg: Config = store.load()?;
@@ -174,13 +186,19 @@ fn run(cli: &Cli) -> Result<(), CliError> {
         Command::Profile => profile::run(&ctx),
         Command::Association => community::association(&ctx),
         Command::Api(args) => api::run(&ctx, args),
+        Command::Mcp(_) => unreachable!("served before the config is read"),
         Command::SelfUpdate(args) => Updater {
             repo: REPO.into(),
             binary: BIN.into(),
             target: env!("BUILD_TARGET").into(),
             current: env!("CARGO_PKG_VERSION").into(),
         }
-        .run(args, cli.common.json, cli.common.quiet),
+        .run_noting(
+            args,
+            cli.common.json,
+            cli.common.quiet,
+            &pk_cli_mcp::restart_note(BIN),
+        ),
         Command::Completions { shell } => {
             clap_complete::generate(*shell, &mut Cli::command(), BIN, &mut std::io::stdout());
             Ok(())
@@ -214,6 +232,7 @@ fn run(cli: &Cli) -> Result<(), CliError> {
                     "profile",
                     "association",
                     "api",
+                    "mcp",
                 ],
             )
             .with_profiles(&[pk_cli_utility::PROFILE]);

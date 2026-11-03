@@ -128,7 +128,7 @@ pub fn money_cents(v: Option<&Value>) -> Money {
 /// Read a cents field as an integer. The portal sends whole numbers, but a
 /// float is accepted rather than dropped — a `250.0` would otherwise silently
 /// become `0.00`.
-fn cents_of(v: Option<&Value>) -> Option<i64> {
+pub fn cents_of(v: Option<&Value>) -> Option<i64> {
     let v = v?;
     v.as_i64().or_else(|| v.as_f64().map(|f| f.round() as i64))
 }
@@ -148,20 +148,27 @@ pub fn money_opt_cents(v: Option<&Value>) -> Value {
 /// Every paged read goes through [`fetch_all`] rather than relying on that.
 const PAGE_SIZE: u32 = 200;
 
-/// Walk a paged endpoint to exhaustion, returning every record.
-///
-/// Bounded by the `lastPage` the portal reports, with a hard stop so a portal
-/// bug can't spin forever. If that stop is ever hit the shortfall is reported
-/// on stderr — a truncated list that looks complete is worse than a slow one.
-pub fn fetch_all(
-    ctx: &Ctx,
-    service: Service,
-    path: &str,
-) -> Result<(Vec<Value>, Option<u64>), CliError> {
+/// Every record a paged endpoint returned, and how far the walk got.
+pub struct Walked {
+    pub items: Vec<Value>,
+    pub total: Option<u64>,
+    /// The hard page stop cut the walk short.
+    pub cut_short: bool,
+    /// Every page carried the `member` list. A page without one is an answer
+    /// that changed, which [`members`] reads as an empty list.
+    pub shaped: bool,
+}
+
+/// Walk a paged endpoint to exhaustion, bounded by the `lastPage` the portal
+/// reports, with a hard stop so a portal bug can't spin forever.
+pub fn walk(client: &Portal, service: Service, path: &str) -> Result<Walked, CliError> {
     const MAX_PAGES: u32 = 100;
-    let client = ctx.client()?;
-    let mut all = Vec::new();
-    let mut total = None;
+    let mut walked = Walked {
+        items: Vec::new(),
+        total: None,
+        cut_short: false,
+        shaped: true,
+    };
     let mut page = 1;
     loop {
         let body = client.get(
@@ -172,30 +179,47 @@ pub fn fetch_all(
                 ("pageSize", PAGE_SIZE.to_string()),
             ],
         )?;
+        walked.shaped &= body.get("member").is_some_and(Value::is_array);
         let (items, reported) = members(&body);
-        let last_page = body.get("lastPage").and_then(Value::as_u64).unwrap_or(1);
-        if total.is_none() {
-            total = reported;
+        let last_page = body.get("lastPage").and_then(Value::as_u64);
+        // Rows with no page count read as the last page, so a truncated list
+        // would pass for a complete one. An empty page needs no count.
+        walked.shaped &= items.is_empty() || last_page.is_some();
+        if walked.total.is_none() {
+            walked.total = reported;
         }
         let empty = items.is_empty();
-        all.extend(items);
-        if empty || page as u64 >= last_page {
-            break;
+        walked.items.extend(items);
+        if empty || page as u64 >= last_page.unwrap_or(1) {
+            return Ok(walked);
         }
         if page >= MAX_PAGES {
-            if !ctx.common.quiet {
-                eprintln!(
-                    "warning: stopped after {MAX_PAGES} pages ({} of {} records) — \
-                     narrow the range to see the rest",
-                    all.len(),
-                    total.map(|t| t.to_string()).unwrap_or_else(|| "?".into())
-                );
-            }
-            break;
+            walked.cut_short = true;
+            return Ok(walked);
         }
         page += 1;
     }
-    Ok((all, total))
+}
+
+/// [`walk`] for a command. If the hard stop is hit the shortfall is reported
+/// on stderr: a truncated list that looks complete is worse than a slow one.
+pub fn fetch_all(
+    ctx: &Ctx,
+    service: Service,
+    path: &str,
+) -> Result<(Vec<Value>, Option<u64>), CliError> {
+    let walked = walk(&ctx.client()?, service, path)?;
+    if walked.cut_short && !ctx.common.quiet {
+        eprintln!(
+            "warning: stopped early ({} of {} records) — narrow the range to see the rest",
+            walked.items.len(),
+            walked
+                .total
+                .map(|t| t.to_string())
+                .unwrap_or_else(|| "?".into())
+        );
+    }
+    Ok((walked.items, walked.total))
 }
 
 /// Records under the portal's paged envelope (`{page, lastPage, totalItems,
