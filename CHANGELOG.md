@@ -7,6 +7,7 @@ All notable changes to `cpmfl` are documented here. Newest first. The project fo
 
 - `cpmfl auth logout --forget` also removes the `mcp --http` token, and says what a running
   server and `$CPMFL_MCP_TOKEN` still need.
+- The release action that holds the write token is pinned to a commit.
 - cli-common v0.22.0.
 
 ## 0.2.0 — 2026-11-03
