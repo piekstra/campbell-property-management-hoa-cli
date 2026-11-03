@@ -96,4 +96,7 @@ $ op read 'op://Private/your-portal-item/password' \
 ```
 
 `cpmfl auth logout --forget` removes both the password and the cached token
-from the keychain and clears the config.
+from the keychain and clears the config. It also removes the `mcp --http` token. It cannot
+reach a running `cpmfl mcp --http`, which read its token at the start and keeps accepting
+it until it stops, or a token in `$CPMFL_MCP_TOKEN`: stop the server (`launchctl bootout`
+for its launchd agent), and unset the variable if it is set.

@@ -122,7 +122,8 @@ enum AuthCmd {
     Login(LoginArgs),
     /// Report credential and session state (auth-status/v1).
     Status,
-    /// Clear the cached token; --forget also removes the stored password.
+    /// Clear the cached token; --forget also removes the stored password and the
+    /// `cpmfl mcp --http` bearer token.
     Logout(LogoutArgs),
     /// Raw keychain write for rotation / headless setup.
     SetCredential(SetCredentialArgs),
@@ -278,9 +279,18 @@ fn auth(
             creds.delete(TOKEN_ACCOUNT)?;
             if args.forget {
                 creds.delete(KEYCHAIN_ACCOUNT)?;
+                // So the next server to start cannot reuse it. A running server read
+                // the token at its start and keeps it in memory, and the variable is
+                // beyond this command: the message says what those take.
+                creds.delete(pk_cli_mcp::HTTP_TOKEN_ACCOUNT)?;
                 store.clear()?;
                 if !cli.common.quiet {
-                    eprintln!("session cleared; password removed");
+                    eprintln!(
+                        "session cleared; password and `mcp --http` token removed. A running \
+                         `cpmfl mcp --http` keeps accepting the old token until it stops: stop \
+                         it, and unset $CPMFL_MCP_TOKEN if it is set. A connector still in use \
+                         needs `cpmfl mcp --new-token`."
+                    );
                 }
             } else if !cli.common.quiet {
                 eprintln!("session cleared (password kept; use --forget to remove it)");
