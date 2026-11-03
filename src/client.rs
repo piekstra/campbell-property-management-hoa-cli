@@ -30,7 +30,7 @@
 //! part of this CLI.
 
 use pk_cli_auth::token as jwt;
-use pk_cli_core::transport::secure_redirects;
+use pk_cli_core::transport::{same_host_redirects, secure_redirects};
 use pk_cli_core::CliError;
 use pk_cli_secrets::{CredentialStore, Secret};
 use serde_json::Value;
@@ -61,7 +61,9 @@ impl Portal {
         password: &Secret,
     ) -> Result<Authenticated, CliError> {
         cfg.require_secure_urls()?;
-        let http = http_client()?;
+        // The password is in the body, and reqwest re-sends a body on a 307 or 308 to
+        // whatever host it names, so this client stays on the service's host.
+        let http = http_client(same_host_redirects())?;
         let url = format!("{}/Users/Authenticate", cfg.base_url(Service::Users));
         let origin = cfg.portal_url();
         let resp = http
@@ -142,7 +144,7 @@ impl Portal {
     pub fn with_token(cfg: &Config, token: Secret) -> Result<Portal, CliError> {
         cfg.require_secure_urls()?;
         Ok(Portal {
-            http: http_client()?,
+            http: http_client(secure_redirects())?,
             cfg: cfg.clone(),
             token,
         })
@@ -222,11 +224,12 @@ impl Portal {
     }
 }
 
-/// The family's client, whose redirects may not leave `https`. Every request but
-/// the sign-in carries the bearer token.
-fn http_client() -> Result<reqwest::blocking::Client, CliError> {
+/// The family's client with the given redirect policy.
+fn http_client(
+    redirects: reqwest::redirect::Policy,
+) -> Result<reqwest::blocking::Client, CliError> {
     pk_cli_http::builder(BIN, env!("CARGO_PKG_VERSION"))
-        .redirect(secure_redirects())
+        .redirect(redirects)
         .build()
         .map_err(|e| CliError::Other(format!("failed to build HTTP client: {e}")))
 }
@@ -308,7 +311,7 @@ mod tests {
     use serde_json::json;
 
     /// Answers one request on 127.0.0.1 with a redirect to `location`.
-    fn redirecting_to(location: &'static str) -> String {
+    fn redirecting(status: &'static str, location: String) -> String {
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let port = listener.local_addr().unwrap().port();
         std::thread::spawn(move || {
@@ -318,7 +321,7 @@ mod tests {
                 let _ = std::io::Write::write_all(
                     &mut stream,
                     format!(
-                        "HTTP/1.1 302 Found\r\nLocation: {location}\r\n\
+                        "HTTP/1.1 {status}\r\nLocation: {location}\r\n\
                          Content-Length: 0\r\nConnection: close\r\n\r\n"
                     )
                     .as_bytes(),
@@ -326,6 +329,44 @@ mod tests {
             }
         });
         format!("http://127.0.0.1:{port}")
+    }
+
+    fn redirecting_to(location: &str) -> String {
+        redirecting("302 Found", location.to_string())
+    }
+
+    #[test]
+    fn the_password_is_not_sent_on_to_another_host() {
+        let other = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        other.set_nonblocking(true).unwrap();
+        let elsewhere = format!("http://{}/steal", other.local_addr().unwrap());
+        let cfg = Config {
+            users_url: Some(redirecting("307 Temporary Redirect", elsewhere)),
+            ..Config::default()
+        };
+        let e = Portal::authenticate(&cfg, "dummy-user", &Secret::new("dummy-password"))
+            .err()
+            .unwrap();
+        let CliError::Upstream(message) = e else {
+            panic!("{e}");
+        };
+        assert!(message.contains("another host"), "{message}");
+        assert_eq!(
+            other.accept().unwrap_err().kind(),
+            std::io::ErrorKind::WouldBlock,
+            "the other host was contacted"
+        );
+    }
+
+    #[test]
+    fn a_service_url_off_https_is_refused_before_the_keychain() {
+        let cfg = Config {
+            pay_url: Some("http://portal.example/pay".into()),
+            ..Config::default()
+        };
+        let creds = CredentialStore::new("piekstra.cpmfl.test-no-such-item");
+        let e = Portal::from_cached_token(&cfg, &creds).err().unwrap();
+        assert!(matches!(e, CliError::Usage(_)), "{e}");
     }
 
     #[test]

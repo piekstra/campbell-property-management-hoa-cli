@@ -329,6 +329,8 @@ fn login(
             "no portal email configured — run `cpmfl config set username <you@example.com>`".into(),
         )
     })?;
+    // Before the keychain: this reads, and can overwrite, the stored password.
+    cfg.require_secure_urls()?;
 
     let password = match creds.get(KEYCHAIN_ACCOUNT)? {
         Some(p) if !args.overwrite => p,

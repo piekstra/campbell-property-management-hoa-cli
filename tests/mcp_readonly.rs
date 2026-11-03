@@ -310,6 +310,7 @@ fn a_tool_refuses_a_service_url_off_https() {
     let result = server.call("campbell_balance", json!({}));
     assert_eq!(result["isError"], true, "{result}");
     let text = result["content"][0]["text"].as_str().unwrap();
+    assert!(text.starts_with("other:"), "{text}");
     assert!(text.contains("only https"), "{text}");
 }
 

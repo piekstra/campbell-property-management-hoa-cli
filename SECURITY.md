@@ -28,7 +28,8 @@ one homeowner and reads their account data. The things worth protecting:
 ## What this tool does not do
 
 - It sends no password or token over plain `http`, except to this machine: each service
-  URL and every redirect must be `https`.
+  URL and every redirect must be `https`. The sign-in, which carries the password, follows
+  a redirect only on the service's host.
 - It never mutates the portal — no payments, approvals, or profile changes.
 - It talks only to the configured Vantaca service hosts and the document
   links those hosts return. No telemetry, no third-party services, and no

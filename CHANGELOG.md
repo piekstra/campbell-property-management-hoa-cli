@@ -8,7 +8,8 @@ All notable changes to `cpmfl` are documented here. Newest first. The project fo
 - Each service URL must be `https`, or `http` to this machine, before the password or the
   bearer token goes to it. A command and a tool refuse one off `https` before they read
   the keychain.
-- A redirect that leaves `https` is an error.
+- A redirect that leaves `https` is an error, and the sign-in, which carries the password,
+  follows a redirect only on the service's host.
 - A network failure names the service's origin, not the whole URL, and says why a redirect
   was refused.
 - cli-common v0.24.0, up from v0.22.0.

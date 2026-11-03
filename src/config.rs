@@ -103,7 +103,6 @@ impl Config {
         }
     }
 
-    /// The origin identifying the management company.
     /// Refuse a service URL off `https`, since the password or the bearer token goes
     /// to each. An override is the user's to set, so any `https` host passes.
     pub fn require_secure_urls(&self) -> Result<(), CliError> {
@@ -117,6 +116,7 @@ impl Config {
         .try_for_each(|service| require_secure_url(&self.base_url(service)))
     }
 
+    /// The origin identifying the management company.
     pub fn portal_url(&self) -> String {
         self.portal_url
             .clone()
