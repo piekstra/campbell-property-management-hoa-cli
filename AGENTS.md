@@ -9,8 +9,9 @@ Guidance for AI coding agents (and humans) working in this repo. Tool-agnostic;
 Property Management runs at `portal.campbellproperty.com`. A thin,
 portal-specific layer over the shared
 [`cli-common`](https://github.com/piekstra/cli-common) `pk-cli-*` crates
-(auth, http, config, secrets, self-update, utility profile). This repo owns
-only the portal client, the commands, and their DTOs.
+(auth, http, config, secrets, self-update, utility profile, MCP), pinned to
+**v0.21.0**. This repo owns only the portal client, the commands, their DTOs, and
+the tools `cpmfl mcp` serves.
 
 There is no official API. Everything targets the undocumented JSON endpoints
 the portal's own front end calls, mapped by watching its XHR traffic and
@@ -36,8 +37,12 @@ Run `make verify` before considering a change done — it's exactly what CI runs
 - `src/commands/*.rs` — one module per domain; `money.rs` holds the ledger
   side, `community.rs` the non-money reads. Each renders a human table and a
   `--json` DTO.
+- `src/mcp.rs` — `cpmfl mcp`: read-only tools over the `Reads` seam, which offers
+  GETs alone. Its module doc says why it never sends the password or writes the
+  keychain. `tests/mcp_readonly.rs` holds every tool to the read endpoints against a
+  stub portal.
 - `src/config.rs` — non-secret config and the four service base URLs; every
-  secret is keychain-only.
+  secrets live in the keychain (`cpmfl mcp` also reads `$CPMFL_TOKEN` first).
 - `src/dates.rs` — ISO datetime → ISO date, plus range validation/filtering.
 - `tests/` — offline surface + contract tests, and `tests/fixtures/` (read its
   README before touching a fixture).
@@ -87,7 +92,7 @@ Run `make verify` before considering a change done — it's exactly what CI runs
   Association-scoped board endpoints answer **500** for a non-board login;
   treat that as "not permitted", not an outage.
 - **`/Users/Authenticate` is the only POST** the CLI makes, and the only place
-  a credential is sent. There is no two-factor step on the password path.
+  a credential is sent; only `auth login` calls it, never a tool. There is no two-factor step on the password path.
 - `documents download` uses `Documents/{id}` (a blob), which is a *different*
   endpoint from folder navigation. Don't conflate them. The `documentUrl` in
   list/search rows is a short-lived SAS URL whose signature breaks if the URL

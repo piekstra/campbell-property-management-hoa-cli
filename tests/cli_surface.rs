@@ -30,6 +30,7 @@ const COMMANDS: &[&str] = &[
     "profile",
     "association",
     "api",
+    "mcp",
     "self-update",
     "completions",
     "info",

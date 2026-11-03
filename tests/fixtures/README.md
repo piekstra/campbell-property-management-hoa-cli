@@ -22,7 +22,7 @@ Structure is preserved **exactly** — key names, nesting, types, null-vs-absent
 | Phone numbers | `555-0100` |
 | Street address / city / state / ZIP | `100 Sample St`, `Sample City`, `ST`, `00000` |
 | Account numbers | `SMP100000` |
-| Record IDs (homeowner, owner, user, sub-ledger) | small fixed dummies |
+| Record IDs (homeowner, owner, user, sub-ledger, payment) | small fixed dummies |
 | GUIDs | `00000000-0000-4000-8000-…` |
 | Bank / card last four | `0000` |
 | Money — dollar endpoints | `250` |
@@ -51,5 +51,5 @@ account data is real, and `documentUrl` values point at live association
 documents.
 
 `fixtures_carry_no_real_identifiers` in `tests/fixture_shapes.rs` enforces the
-policy mechanically. Extend its banned list when you add a new kind of
-identifier.
+policy mechanically, with an allow-list of dummy values. Add a new kind of
+identifier to that list; never write a real value into a test as a banned string.

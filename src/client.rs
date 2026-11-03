@@ -122,6 +122,11 @@ impl Portal {
         let token = creds
             .get(TOKEN_ACCOUNT)?
             .ok_or_else(|| CliError::Auth("not logged in — run `cpmfl auth login`".into()))?;
+        Portal::with_live_token(cfg, token)
+    }
+
+    /// A session on `token`, refusing one whose own expiry has passed.
+    pub fn with_live_token(cfg: &Config, token: Secret) -> Result<Portal, CliError> {
         if jwt::is_expired(token.expose(), now_unix(), jwt::DEFAULT_SKEW_SECS) {
             return Err(CliError::Auth(
                 "the cached portal session has expired — run `cpmfl auth login`".into(),
