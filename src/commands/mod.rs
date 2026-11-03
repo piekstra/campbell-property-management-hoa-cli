@@ -181,13 +181,16 @@ pub fn walk(client: &Portal, service: Service, path: &str) -> Result<Walked, Cli
         )?;
         walked.shaped &= body.get("member").is_some_and(Value::is_array);
         let (items, reported) = members(&body);
-        let last_page = body.get("lastPage").and_then(Value::as_u64).unwrap_or(1);
+        let last_page = body.get("lastPage").and_then(Value::as_u64);
+        // Rows with no page count read as the last page, so a truncated list
+        // would pass for a complete one. An empty page needs no count.
+        walked.shaped &= items.is_empty() || last_page.is_some();
         if walked.total.is_none() {
             walked.total = reported;
         }
         let empty = items.is_empty();
         walked.items.extend(items);
-        if empty || page as u64 >= last_page {
+        if empty || page as u64 >= last_page.unwrap_or(1) {
             return Ok(walked);
         }
         if page >= MAX_PAGES {

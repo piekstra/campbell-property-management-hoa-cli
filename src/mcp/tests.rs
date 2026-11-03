@@ -309,6 +309,37 @@ fn a_withheld_ledger_says_what_the_portal_said() {
     assert_eq!(got["returned"], 0);
 }
 
+/// The ledger is per login, the block per account: another account's rows must
+/// not read as this one's answer, or a withheld ledger would look like no charges.
+#[test]
+fn a_withheld_account_is_an_error_when_only_another_account_has_rows() {
+    let mut fixtures = Fixtures::new();
+    second_account(&mut fixtures);
+    fixtures.accounts[1]["blockLedger"] = json!(true);
+    fixtures.accounts[1]["blockLedgerMessage"] = json!("Sample block message");
+    let second = fixtures.accounts[1]["accountNumber"].clone();
+    let tools = tools_over(fixtures);
+    for tool in ["campbell_bills", "campbell_payments"] {
+        let text = error(&tools, tool, json!({ "account": second }));
+        assert!(text.starts_with("upstream:"), "{tool}: {text}");
+        assert!(text.contains("Sample block message"), "{tool}: {text}");
+    }
+}
+
+/// A block on an account whose ledger holds rows means the rows are there: only
+/// its charges are filtered out, and that is an empty list, not a refusal.
+#[test]
+fn a_blocked_account_with_rows_of_its_own_still_answers() {
+    let mut fixtures = Fixtures::new();
+    fixtures.accounts[0]["blockLedger"] = json!(true);
+    for row in &mut fixtures.ledger {
+        row["transactionType"] = json!("Payment");
+    }
+    fixtures.charges = json!([]);
+    let got = ok(&tools_over(fixtures), "campbell_bills", json!({}));
+    assert_eq!(got["returned"], 0);
+}
+
 #[test]
 fn payments_filter_and_page() {
     let tools = tools();
@@ -572,8 +603,8 @@ fn the_token_comes_from_the_variable_then_the_keychain() {
 #[test]
 fn a_token_past_its_own_expiry_is_refused_without_a_request() {
     // `{"alg":"none"}.{"exp":1}.` in base64url.
-    let token = "eyJhbGciOiJub25lIn0.eyJleHAiOjF9.";
-    let e = Portal::with_live_token(&Config::default(), Secret::new(token))
+    let lapsed = ["eyJhbGciOiJub25lIn0", "eyJleHAiOjF9", ""].join(".");
+    let e = Portal::with_live_token(&Config::default(), Secret::new(lapsed))
         .err()
         .expect("expired");
     assert_eq!(e.exit_code(), 3, "{e}");

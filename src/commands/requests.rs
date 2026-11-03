@@ -24,7 +24,7 @@ pub enum Cmd {
         #[arg(long, value_name = "YYYY-MM-DD")]
         until: Option<String>,
         /// Include requests the association has closed.
-        #[arg(long)]
+        #[arg(long, alias = "include-closed")]
         all: bool,
         /// Maximum requests to return.
         #[arg(long, value_name = "N")]

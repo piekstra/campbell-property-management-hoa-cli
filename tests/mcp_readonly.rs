@@ -292,3 +292,91 @@ fn a_rejected_session_is_an_auth_error_and_nothing_is_sent_but_the_read() {
         assert!(!request.contains("Authenticate"), "{request}");
     }
 }
+
+/// A fixture with one top-level field gone or set, as a changed API would answer.
+fn altered(name: &str, field: &str, value: Option<Value>) -> String {
+    let mut body: Value = serde_json::from_str(&fixture(name)).unwrap();
+    let object = body.as_object_mut().unwrap();
+    match value {
+        Some(value) => object.insert(field.into(), value),
+        None => object.remove(field),
+    };
+    body.to_string()
+}
+
+fn assert_upstream(port: u16, tools: &[(&str, Value)]) {
+    let mut server = Server::start(port);
+    for (name, args) in tools {
+        let result = server.call(name, args.clone());
+        assert_eq!(result["isError"], true, "{name}: {result}");
+        let text = result["content"][0]["text"].as_str().unwrap();
+        assert!(text.starts_with("upstream:"), "{name}: {text}");
+    }
+}
+
+/// The tools that page through a `member` list.
+fn paged_tools() -> [(&'static str, Value); 3] {
+    [
+        ("campbell_bills", json!({})),
+        ("campbell_payments", json!({})),
+        ("campbell_requests", json!({})),
+    ]
+}
+
+fn paged_fixture(path: &str) -> Option<&'static str> {
+    match path {
+        "/pay/Ledger" => Some("ledger.json"),
+        "/pay/Payment" => Some("payments.json"),
+        "/actionitems/HomeownerRequests" => Some("homeowner_requests.json"),
+        _ => None,
+    }
+}
+
+#[test]
+fn a_list_with_no_rows_field_is_an_error_not_an_empty_list() {
+    let (_stub, port) = Stub::start(|path, query| match paged_fixture(path) {
+        Some(_) => (200, "{}".into()),
+        None => answer(path, query),
+    });
+    assert_upstream(port, &paged_tools());
+}
+
+/// A page count gone would read as "this is the last page", so the first page
+/// would pass for the whole list.
+#[test]
+fn a_list_with_no_page_count_is_an_error_not_a_short_list() {
+    let (_stub, port) = Stub::start(|path, query| match paged_fixture(path) {
+        Some(name) => (200, altered(name, "lastPage", None)),
+        None => answer(path, query),
+    });
+    assert_upstream(port, &paged_tools());
+
+    let (_stub, port) = Stub::start(|path, query| {
+        if path.ends_with("/Documents/Search") {
+            return (200, altered("document_search.json", "totalPages", None));
+        }
+        answer(path, query)
+    });
+    assert_upstream(
+        port,
+        &[("campbell_documents", json!({"query": "statement"}))],
+    );
+}
+
+/// Past the most pages one call reads, the answer is incomplete and says so.
+#[test]
+fn a_list_past_the_page_limit_is_an_error_not_a_short_list() {
+    let (stub, port) = Stub::start(|path, query| {
+        if path == "/pay/Ledger" {
+            return (200, altered("ledger.json", "lastPage", Some(json!(1000))));
+        }
+        answer(path, query)
+    });
+    assert_upstream(port, &[("campbell_bills", json!({}))]);
+    let reads = stub
+        .seen()
+        .iter()
+        .filter(|(request, _)| request == "GET /pay/Ledger")
+        .count();
+    assert_eq!(reads, 100);
+}

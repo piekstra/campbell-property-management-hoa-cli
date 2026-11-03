@@ -40,7 +40,9 @@ stdio; it opens no port unless run with `--http` (below). **What the tools retur
 to Claude on every path**, as part of your conversation: your balance, next charge
 date, autopay state, charges, payments, property address, your requests' subjects and
 statuses, and the names and folders of your association's documents. Account numbers
-are held back unless the model asks for `detailed`, which adds them. The document
+are held back unless the model asks for `detailed`, which adds them, or two accounts
+on one login share an address, when the number is the only way to tell them apart. The
+document
 links the portal issues need no sign-in, so no tool returns one, in any format. The
 board directory is not served.
 

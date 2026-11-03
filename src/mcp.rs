@@ -59,8 +59,9 @@ fn with_reads<R: Reads>(reads: R, token_in_env: bool) -> CampbellTools<R> {
         "Access here is read-only: no tool can make a payment, change autopay, submit a request \
          or change anything at the portal. A balance's due_date is the portal's next charge \
          date. Bills are the ledger's posted charges plus any charge assessed but not yet \
-         posted; voided ones are left out. The portal's session expires and a tool cannot renew \
-         it.",
+         posted; voided ones are left out. A login with several accounts cannot tell whose an \
+         unposted charge is, so its bills hold posted charges only. The portal's session expires \
+         and a tool cannot renew it.",
     );
     // The keychain is not read while the variable is set, so `cpmfl auth login`
     // would store a token this server never sees.
@@ -350,15 +351,20 @@ impl<R: Reads> UtilitySource for Source<R> {
         let records = self.records()?;
         let (record, id) = Self::record(&records, account)?;
         let rows = self.reads.ledger()?;
-        withheld(record, !rows.is_empty(), "ledger")?;
         let mut bills = Vec::new();
+        // Any row of this account's, even one not listed here: a ledger of only
+        // payments is not a withheld one. Another account's rows say nothing.
+        let mut any_of_its_rows = false;
         for row in &rows {
             let kind = row
                 .get("transactionType")
                 .and_then(Value::as_str)
                 .ok_or_else(|| shape_error("ledger"))?;
-            if ledger_id(row, "accountNumber").ok_or_else(|| shape_error("ledger"))? != id
-                || !kind.eq_ignore_ascii_case("charge")
+            if ledger_id(row, "accountNumber").ok_or_else(|| shape_error("ledger"))? != id {
+                continue;
+            }
+            any_of_its_rows = true;
+            if !kind.eq_ignore_ascii_case("charge")
                 || row.get("isVoided").and_then(Value::as_bool) == Some(true)
             {
                 continue;
@@ -376,6 +382,7 @@ impl<R: Reads> UtilitySource for Source<R> {
                 paid: None,
             });
         }
+        withheld(record, any_of_its_rows, "ledger")?;
         // `/Charge` rows name no account, so with several there is no telling
         // whose they are.
         if records.len() == 1 {
@@ -413,7 +420,6 @@ impl<R: Reads> UtilitySource for Source<R> {
         let records = self.records()?;
         let (record, id) = Self::record(&records, account)?;
         let rows = self.reads.payments()?;
-        withheld(record, !rows.is_empty(), "payments")?;
         let mut payments = Vec::new();
         for row in &rows {
             if ledger_id(row, "account").ok_or_else(|| shape_error("payment list"))? != id {
@@ -434,6 +440,7 @@ impl<R: Reads> UtilitySource for Source<R> {
                 confirmation: row.get("id").and_then(Value::as_str).map(str::to_string),
             });
         }
+        withheld(record, !payments.is_empty(), "payments")?;
         newest_first(&mut payments, |p| Some(p.date.as_str()));
         Ok(payments)
     }
@@ -680,8 +687,16 @@ impl<R: Reads> CampbellTools<R> {
                 .and_then(Value::as_array)
                 .ok_or_else(|| shape_error("document search"))?;
             rows.extend(found.iter().cloned());
-            let last = body.get("totalPages").and_then(Value::as_u64).unwrap_or(1);
-            if found.is_empty() || u64::from(page) >= last {
+            if found.is_empty() {
+                return Ok((rows, false));
+            }
+            // Without it, page 1 would read as the last page and a truncated list
+            // as a complete one.
+            let last = body
+                .get("totalPages")
+                .and_then(Value::as_u64)
+                .ok_or_else(|| shape_error("document search"))?;
+            if u64::from(page) >= last {
                 return Ok((rows, false));
             }
             if rows.len() >= wanted {
