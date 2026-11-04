@@ -282,7 +282,7 @@ fn auth(
                 let token = creds.delete(pk_cli_mcp::HTTP_TOKEN_ACCOUNT);
                 let config = store.clear().map(drop);
                 let quiet = cli.common.quiet;
-                finish_forget(
+                let removed = finish_forget(
                     vec![
                         ("the session", session),
                         ("the password", password),
@@ -292,10 +292,7 @@ fn auth(
                     quiet,
                 )?;
                 if !quiet {
-                    eprintln!(
-                        "session cleared; password and `mcp --http` token removed. A connector \
-                         still in use needs `cpmfl mcp --new-token`."
-                    );
+                    eprintln!("{}", forget_line("password", removed));
                 }
             } else {
                 session?;
@@ -444,22 +441,53 @@ fn finish_forget(
     steps: Vec<(&str, Result<(), CliError>)>,
     token: Result<bool, CliError>,
     quiet: bool,
-) -> Result<(), CliError> {
-    if matches!(token, Ok(true)) && !quiet {
+) -> Result<bool, CliError> {
+    let removed = matches!(token, Ok(true));
+    if removed && !quiet {
         eprintln!("{}", pk_cli_mcp::stop_note("cpmfl"));
     }
-    let failed: Vec<String> = steps
+    let failed: Vec<(&str, CliError)> = steps
         .into_iter()
         .chain([("the `mcp --http` token", token.map(drop))])
-        .filter_map(|(what, result)| result.err().map(|e| format!("{what} ({})", e.message())))
+        .filter_map(|(what, result)| result.err().map(|e| (what, e)))
         .collect();
     if failed.is_empty() {
-        return Ok(());
+        return Ok(removed);
     }
-    Err(CliError::Keychain(format!(
+    // A config that could not be cleared is not a keychain failure.
+    let keychain = failed
+        .iter()
+        .all(|(_, e)| matches!(e.base(), CliError::Keychain(_)));
+    let causes: Vec<String> = failed
+        .iter()
+        .map(|(what, e)| format!("{what} ({})", e.message()))
+        .collect();
+    let message = format!(
         "could not remove {}; run `cpmfl auth logout --forget` again",
-        failed.join(", ")
-    )))
+        causes.join(", ")
+    );
+    Err(if keychain {
+        CliError::Keychain(message)
+    } else {
+        CliError::Other(message)
+    })
+}
+
+/// The line of a finished forget. The keychain's token is only one place a server finds one, so
+/// this claims no more than what went.
+fn forget_line(cleared: &str, token_removed: bool) -> String {
+    if token_removed {
+        format!(
+            "session cleared; {cleared} and `mcp --http` token removed. A connector still in use \
+             needs `cpmfl mcp --new-token`."
+        )
+    } else {
+        format!(
+            "session cleared; {cleared} removed. The keychain held no `mcp --http` token. A \
+             running `cpmfl mcp --http` with one in $CPMFL_MCP_TOKEN keeps accepting it until it stops: stop \
+             it, and unset that variable."
+        )
+    }
 }
 
 #[cfg(test)]
@@ -492,6 +520,27 @@ mod tests {
         for cause in ["locked", "read-only", "denied"] {
             assert!(says.contains(cause), "{says}");
         }
+    }
+
+    #[test]
+    fn a_config_that_could_not_be_cleared_is_not_called_a_keychain_failure() {
+        let e = finish_forget(
+            vec![("the config", Err(CliError::Other("read-only".into())))],
+            Ok(false),
+            true,
+        )
+        .unwrap_err();
+        assert!(matches!(e, CliError::Other(_)), "{e}");
+    }
+
+    #[test]
+    fn a_forget_claims_only_the_token_it_removed() {
+        let gone = forget_line("password", true);
+        assert!(gone.contains("`mcp --http` token removed"), "{gone}");
+        let none = forget_line("password", false);
+        assert!(!none.contains("token removed"), "{none}");
+        assert!(none.contains("held no `mcp --http` token"), "{none}");
+        assert!(none.contains("$CPMFL_MCP_TOKEN"), "{none}");
     }
 
     #[test]

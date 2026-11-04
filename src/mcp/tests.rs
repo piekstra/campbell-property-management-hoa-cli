@@ -470,6 +470,74 @@ fn a_request_filed_between_pages_repeats_nothing_and_skips_nothing() {
     assert_eq!(seen, [1, 2, 3, 4]);
 }
 
+/// A pending charge and the ledger row it posts as have different ids at the portal, and a position
+/// holds this one, so a posting between pages must not move the row.
+#[test]
+fn a_bill_keeps_its_id_when_its_charge_posts() {
+    let id_of = |fixtures: Fixtures| {
+        let got = ok(
+            &tools_over(fixtures),
+            "campbell_bills",
+            json!({"since": "2026-10-01", "until": "2026-10-01", "response_format": "detailed"}),
+        );
+        assert_eq!(got["returned"], 1, "{got}");
+        got["items"][0]["id"].clone()
+    };
+    let mut pending = Fixtures::new();
+    pending.ledger.clear();
+    let mut posted = Fixtures::new();
+    let charge = posted
+        .ledger
+        .iter()
+        .position(|r| r["transactionType"] == "charge")
+        .unwrap();
+    posted.ledger[charge]["ledgerDate"] = json!("2026-10-01T00:00:00.000Z");
+    posted.ledger[charge]["amount"] = json!(25000);
+    posted.ledger[charge]["subLedgerId"] = json!(99999);
+    posted.ledger.truncate(charge + 1);
+    assert_eq!(id_of(pending), id_of(posted));
+}
+
+/// A cursor issued before this version holds a count, and is read as one.
+#[test]
+fn an_earlier_versions_cursor_still_continues_as_the_count_it_holds() {
+    let list: ListArgs = serde_json::from_value(json!({"limit": 2})).unwrap();
+    let filter = RequestFilter {
+        since: None,
+        until: None,
+        include_closed: true,
+    };
+    let page = PageRequest::new(&list, &filter)
+        .unwrap()
+        .page(vec![0, 1, 2], "anything")
+        .unwrap();
+    let cursor = serde_json::to_value(&page).unwrap()["next_cursor"].clone();
+    let all = ok(
+        &tools(),
+        "campbell_requests",
+        json!({"include_closed": true}),
+    );
+    let got = ok(
+        &tools(),
+        "campbell_requests",
+        json!({"include_closed": true, "limit": 2, "cursor": cursor}),
+    );
+    assert_eq!(got["returned"], all["returned"].as_u64().unwrap() - 2);
+}
+
+/// A row with no id could only be told apart by a count, which is what a position replaces.
+#[test]
+fn a_request_with_no_id_is_a_changed_portal_and_not_a_guess() {
+    let mut fixtures = Fixtures::new();
+    fixtures.requests[0].as_object_mut().unwrap().remove("id");
+    let text = error(
+        &tools_over(fixtures),
+        "campbell_requests",
+        json!({"include_closed": true}),
+    );
+    assert!(text.contains("request list"), "{text}");
+}
+
 #[test]
 fn a_request_row_that_changed_shape_is_an_error() {
     let mut fixtures = Fixtures::new();

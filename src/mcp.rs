@@ -268,6 +268,13 @@ fn newest_first<T>(rows: &mut [T], date: impl Fn(&T) -> Option<&str>) {
     rows.sort_by(|a, b| date(b).cmp(&date(a)));
 }
 
+/// A bill's id. A pending charge and the ledger row it posts as have different ids at the portal, and
+/// a position holds this one, so it is built from what makes the two one bill: its day and amount.
+/// Two of one day and amount are told apart by count.
+fn bill_id(day: &str, amount: &Money) -> String {
+    format!("{day}:{}", amount.amount)
+}
+
 /// [`UtilitySource`] over [`Reads`]: the shared tools' balance, bills and payments.
 pub struct Source<R> {
     reads: Arc<R>,
@@ -378,13 +385,12 @@ impl<R: Reads> UtilitySource for Source<R> {
             }
             // Cents on this endpoint, unlike every other money field.
             let cents = cents_of(row.get("amount")).ok_or_else(|| shape_error("ledger"))?;
+            let date = date_of(row, "ledgerDate", "ledger")?;
+            let amount = Money::from_cents(cents);
             bills.push(Statement {
-                id: row
-                    .get("subLedgerId")
-                    .map(Value::to_string)
-                    .unwrap_or_default(),
-                date: Some(date_of(row, "ledgerDate", "ledger")?),
-                amount: Money::from_cents(cents),
+                id: bill_id(&date, &amount),
+                date: Some(date),
+                amount,
                 due_date: None,
                 paid: None,
             });
@@ -406,7 +412,7 @@ impl<R: Reads> UtilitySource for Source<R> {
                 });
                 if !posted {
                     bills.push(Statement {
-                        id: row.get("id").map(Value::to_string).unwrap_or_default(),
+                        id: bill_id(&due, &amount),
                         date: None,
                         amount,
                         due_date: Some(due),
@@ -610,11 +616,11 @@ impl<R: Reads> CampbellTools<R> {
             {
                 continue;
             }
-            let id = row.get("id").and_then(Value::as_u64);
-            let key = PositionKey::new(
-                submitted.as_str(),
-                &id.map(|i| i.to_string()).unwrap_or_default(),
-            );
+            let id = row
+                .get("id")
+                .and_then(Value::as_u64)
+                .ok_or_else(|| shape_error("request list"))?;
+            let key = PositionKey::new(submitted.as_str(), &id.to_string());
             items.push((
                 key,
                 RequestItem {
@@ -623,7 +629,7 @@ impl<R: Reads> CampbellTools<R> {
                     subject: text_of(&row, "subject"),
                     status: text_of(&row, "status"),
                     closed,
-                    id: id.filter(|_| detailed),
+                    id: detailed.then_some(id),
                 },
             ));
         }
