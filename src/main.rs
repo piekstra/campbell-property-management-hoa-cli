@@ -443,8 +443,8 @@ fn finish_forget(
     quiet: bool,
 ) -> Result<bool, CliError> {
     let removed = matches!(token, Ok(true));
-    if removed && !quiet {
-        eprintln!("{}", pk_cli_mcp::stop_note("cpmfl"));
+    if let (Ok(removed), false) = (&token, quiet) {
+        eprintln!("{}", pk_cli_mcp::forget_note("cpmfl", *removed));
     }
     let failed: Vec<(&str, CliError)> = steps
         .into_iter()
@@ -473,20 +473,12 @@ fn finish_forget(
     })
 }
 
-/// The line of a finished forget. The keychain's token is only one place a server finds one, so
-/// this claims no more than what went.
+/// The line of a finished forget, which claims only the token it removed.
 fn forget_line(cleared: &str, token_removed: bool) -> String {
     if token_removed {
-        format!(
-            "session cleared; {cleared} and `mcp --http` token removed. A connector still in use \
-             needs `cpmfl mcp --new-token`."
-        )
+        format!("session cleared; {cleared} and `mcp --http` token removed.")
     } else {
-        format!(
-            "session cleared; {cleared} removed. The keychain held no `mcp --http` token. A \
-             running `cpmfl mcp --http` with one in $CPMFL_MCP_TOKEN keeps accepting it until it stops: stop \
-             it, and unset that variable."
-        )
+        format!("session cleared; {cleared} removed.")
     }
 }
 
@@ -539,8 +531,6 @@ mod tests {
         assert!(gone.contains("`mcp --http` token removed"), "{gone}");
         let none = forget_line("password", false);
         assert!(!none.contains("token removed"), "{none}");
-        assert!(none.contains("held no `mcp --http` token"), "{none}");
-        assert!(none.contains("$CPMFL_MCP_TOKEN"), "{none}");
     }
 
     #[test]

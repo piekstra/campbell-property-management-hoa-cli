@@ -384,6 +384,31 @@ fn a_list_with_no_page_count_is_an_error_not_a_short_list() {
     );
 }
 
+/// The portal pages by number, so a row arriving during a walk puts the last row of one page first
+/// on the next.
+#[test]
+fn a_row_repeated_on_the_next_page_is_kept_once() {
+    let (_stub, port) = Stub::start(|path, query| {
+        if path == "/pay/Payment" {
+            let body: Value = serde_json::from_str(&fixture("payments.json")).unwrap();
+            let rows = body["member"].as_array().unwrap();
+            let page = if query.contains("page=1") {
+                &rows[..2]
+            } else {
+                &rows[1..3]
+            };
+            let body = json!({"page": 1, "lastPage": 2, "totalItems": 3, "member": page});
+            return (200, body.to_string());
+        }
+        answer(path, query)
+    });
+    let mut server = Server::start(port);
+    let result = server.call("campbell_payments", json!({"response_format": "detailed"}));
+    assert_eq!(result["isError"], false, "{result}");
+    let page: Value = serde_json::from_str(result["content"][0]["text"].as_str().unwrap()).unwrap();
+    assert_eq!(page["items"].as_array().unwrap().len(), 3, "{page}");
+}
+
 /// Past the most pages one call reads, the answer is incomplete and says so.
 #[test]
 fn a_list_past_the_page_limit_is_an_error_not_a_short_list() {
