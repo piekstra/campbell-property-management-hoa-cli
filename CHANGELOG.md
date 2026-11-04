@@ -3,6 +3,22 @@
 All notable changes to `cpmfl` are documented here. Newest first. The project follows
 [SemVer](https://semver.org/); until 1.0, minors carry the breaking-change signal.
 
+## 0.2.3 — 2026-11-03
+
+- `campbell_requests` pages by position, as `campbell_bills` and `campbell_payments` now do, so a row
+  that arrives between pages repeats nothing and skips nothing. Rows of the same day now run in a
+  fixed order of their own. A cursor from an earlier version still works, as the count of rows it
+  holds. A request with no `id` is now an upstream error, since the id decides its position.
+- A bill's `id` in `campbell_bills` is now its day and amount, numbered from the second of one day
+  and amount, so it stays the same when a charge posts. The portal's two ids for one bill would have
+  moved it between pages.
+- `auth logout --forget` attempts every step and reports every failure, where the first failure used
+  to stop the rest. When it removed a connector token, it says a running `cpmfl mcp --http` keeps
+  accepting that token until it stops, whatever else failed. When the keychain held none, it says so
+  and names `$CPMFL_MCP_TOKEN`.
+- On Windows, a session too long for one credential is split and read back as one.
+- cli-common v0.27.0, up from v0.24.0.
+
 ## 0.2.2 — 2026-11-03
 
 - Each service URL must be `https`, or `http` to this machine, before the password or the

@@ -20,12 +20,14 @@
 //! Document rows carry a short-lived SAS URL that needs no sign-in. No tool
 //! returns it. The board directory is left out: it names other people.
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use pk_cli_config::ConfigStore;
 use pk_cli_core::{dates, CliError, Money};
 use pk_cli_mcp::{
-    parse_args, ListArgs, Page, PageRequest, Server, ToolDef, ToolError, ToolOutput, Toolset,
+    parse_args, ListArgs, Order, Page, PageRequest, PositionKey, PositionRequest, Server, ToolDef,
+    ToolError, ToolOutput, Toolset,
 };
 use pk_cli_secrets::{CredentialStore, KeychainRead, SecretResolver, SecretSpec};
 use pk_cli_utility::mcp::{UtilityAccount, UtilitySource, UtilityTools};
@@ -267,6 +269,13 @@ fn newest_first<T>(rows: &mut [T], date: impl Fn(&T) -> Option<&str>) {
     rows.sort_by(|a, b| date(b).cmp(&date(a)));
 }
 
+/// A bill's id. A pending charge and the ledger row it posts as have different ids at the portal, and
+/// a position holds this one, so it is built from what makes the two one bill: its day and amount.
+/// `statements` numbers a second of one day and amount.
+fn bill_id(day: &str, amount: &Money) -> String {
+    format!("{day}:{}", amount.amount)
+}
+
 /// [`UtilitySource`] over [`Reads`]: the shared tools' balance, bills and payments.
 pub struct Source<R> {
     reads: Arc<R>,
@@ -377,13 +386,12 @@ impl<R: Reads> UtilitySource for Source<R> {
             }
             // Cents on this endpoint, unlike every other money field.
             let cents = cents_of(row.get("amount")).ok_or_else(|| shape_error("ledger"))?;
+            let date = date_of(row, "ledgerDate", "ledger")?;
+            let amount = Money::from_cents(cents);
             bills.push(Statement {
-                id: row
-                    .get("subLedgerId")
-                    .map(Value::to_string)
-                    .unwrap_or_default(),
-                date: Some(date_of(row, "ledgerDate", "ledger")?),
-                amount: Money::from_cents(cents),
+                id: bill_id(&date, &amount),
+                date: Some(date),
+                amount,
                 due_date: None,
                 paid: None,
             });
@@ -405,7 +413,7 @@ impl<R: Reads> UtilitySource for Source<R> {
                 });
                 if !posted {
                     bills.push(Statement {
-                        id: row.get("id").map(Value::to_string).unwrap_or_default(),
+                        id: bill_id(&due, &amount),
                         date: None,
                         amount,
                         due_date: Some(due),
@@ -415,6 +423,15 @@ impl<R: Reads> UtilitySource for Source<R> {
             }
         }
         newest_first(&mut bills, |b| b.date.as_deref().or(b.due_date.as_deref()));
+        // Two of one day and amount are two bills, and a reader of `id` has to be able to tell.
+        let mut repeats: HashMap<String, u32> = HashMap::new();
+        for bill in &mut bills {
+            let nth = repeats.entry(bill.id.clone()).or_default();
+            *nth += 1;
+            if *nth > 1 {
+                bill.id = format!("{}:{nth}", bill.id);
+            }
+        }
         Ok(bills)
     }
 
@@ -587,7 +604,7 @@ impl<R: Reads> CampbellTools<R> {
         let args: RequestArgs = parse_args(args)?;
         let (since, until) = bounds(args.since.as_deref(), args.until.as_deref())?;
         let include_closed = args.include_closed.unwrap_or(false);
-        let page = PageRequest::new(
+        let page = PositionRequest::new(
             &args.list,
             &RequestFilter {
                 since: since.as_deref(),
@@ -609,17 +626,24 @@ impl<R: Reads> CampbellTools<R> {
             {
                 continue;
             }
-            items.push(RequestItem {
-                submitted,
-                kind: text_of(&row, "type"),
-                subject: text_of(&row, "subject"),
-                status: text_of(&row, "status"),
-                closed,
-                id: row.get("id").and_then(Value::as_u64).filter(|_| detailed),
-            });
+            let id = row
+                .get("id")
+                .and_then(Value::as_u64)
+                .ok_or_else(|| shape_error("request list"))?;
+            let key = PositionKey::new(submitted.as_str(), &id.to_string());
+            items.push((
+                key,
+                RequestItem {
+                    submitted,
+                    kind: text_of(&row, "type"),
+                    subject: text_of(&row, "subject"),
+                    status: text_of(&row, "status"),
+                    closed,
+                    id: detailed.then_some(id),
+                },
+            ));
         }
-        newest_first(&mut items, |r| Some(r.submitted.as_str()));
-        ToolOutput::new(&page.page(items, "since/until")?)
+        ToolOutput::new(&page.page(items, Order::Descending, "since/until")?)
     }
 
     fn documents(&self, args: Value) -> Result<ToolOutput, ToolError> {
@@ -768,7 +792,7 @@ impl<R: Reads> Toolset for CampbellTools<R> {
                 "campbell_requests",
                 "Campbell HOA requests",
                 "Lists the homeowner requests the user submitted (work orders, architectural \
-                 applications, questions), newest first. Use it to see where a request stands. \
+                 applications, questions), newest day first. Use it to see where a request stands. \
                  Items carry submitted, kind, subject, status and closed (detailed adds id). \
                  Open ones only unless include_closed.",
             )
