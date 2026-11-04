@@ -3,6 +3,12 @@
 All notable changes to `cpmfl` are documented here. Newest first. The project follows
 [SemVer](https://semver.org/); until 1.0, minors carry the breaking-change signal.
 
+## 0.2.4 — 2026-11-04
+
+- The ledger, payment and request lists stop reading after 90 seconds. A row the portal repeats on a later page, because one arrived during the walk, is kept once, in the commands too.
+- The note for a server on `$CPMFL_MCP_TOKEN` comes from cli-common, which took it from this crate.
+- cli-common v0.29.0, up from v0.27.0.
+
 ## 0.2.3 — 2026-11-03
 
 - `campbell_requests` pages by position, as `campbell_bills` and `campbell_payments` now do, so a row

@@ -26,8 +26,8 @@ use std::sync::Arc;
 use pk_cli_config::ConfigStore;
 use pk_cli_core::{dates, CliError, Money};
 use pk_cli_mcp::{
-    parse_args, ListArgs, Order, Page, PageRequest, PositionKey, PositionRequest, Server, ToolDef,
-    ToolError, ToolOutput, Toolset,
+    parse_args, ListArgs, Order, Page, PageRequest, PositionKey, PositionRequest, ReadBudget,
+    Server, SystemClock, ToolDef, ToolError, ToolOutput, Toolset, READ_BUDGET,
 };
 use pk_cli_secrets::{CredentialStore, KeychainRead, SecretResolver, SecretSpec};
 use pk_cli_utility::mcp::{UtilityAccount, UtilitySource, UtilityTools};
@@ -140,7 +140,12 @@ impl LivePortal {
     }
 
     fn all(service: Service, path: &str, what: &str) -> Result<Vec<Value>, CliError> {
-        let walked = commands::walk(&Self::portal()?, service, path).map_err(portal_error)?;
+        let portal = Self::portal()?;
+        let clock = SystemClock;
+        let budget = ReadBudget::start(&clock, READ_BUDGET);
+        // The portal filters none of these lists, so no argument of the tool can shorten the read.
+        let walked = commands::walk_checked(&portal, service, path, &|| budget.check(None))
+            .map_err(portal_error)?;
         if !walked.shaped {
             return Err(shape_error(what));
         }

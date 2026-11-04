@@ -10,6 +10,7 @@ pub mod profile;
 pub mod requests;
 
 use pk_cli_core::{output, CliError, CommonArgs, Money};
+use pk_cli_mcp::RowsSeen;
 use pk_cli_secrets::CredentialStore;
 use serde_json::Value;
 
@@ -162,7 +163,20 @@ pub struct Walked {
 /// Walk a paged endpoint to exhaustion, bounded by the `lastPage` the portal
 /// reports, with a hard stop so a portal bug can't spin forever.
 pub fn walk(client: &Portal, service: Service, path: &str) -> Result<Walked, CliError> {
+    walk_checked(client, service, path, &|| Ok(()))
+}
+
+/// [`walk`], asking `before_page` before each request, so a tool can stop a walk nobody is waiting
+/// for. The portal pages by number, so a row posted during the walk moves a row onto the next page
+/// as well: a row is kept the first time it is met.
+pub fn walk_checked(
+    client: &Portal,
+    service: Service,
+    path: &str,
+    before_page: &dyn Fn() -> Result<(), CliError>,
+) -> Result<Walked, CliError> {
     const MAX_PAGES: u32 = 100;
+    let mut seen = RowsSeen::new();
     let mut walked = Walked {
         items: Vec::new(),
         total: None,
@@ -171,6 +185,7 @@ pub fn walk(client: &Portal, service: Service, path: &str) -> Result<Walked, Cli
     };
     let mut page = 1;
     loop {
+        before_page()?;
         let body = client.get(
             service,
             path,
@@ -189,7 +204,9 @@ pub fn walk(client: &Portal, service: Service, path: &str) -> Result<Walked, Cli
             walked.total = reported;
         }
         let empty = items.is_empty();
-        walked.items.extend(items);
+        walked
+            .items
+            .extend(items.into_iter().filter(|row| seen.first_time(row)));
         if empty || page as u64 >= last_page.unwrap_or(1) {
             return Ok(walked);
         }
