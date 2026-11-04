@@ -20,6 +20,7 @@
 //! Document rows carry a short-lived SAS URL that needs no sign-in. No tool
 //! returns it. The board directory is left out: it names other people.
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use pk_cli_config::ConfigStore;
@@ -270,7 +271,7 @@ fn newest_first<T>(rows: &mut [T], date: impl Fn(&T) -> Option<&str>) {
 
 /// A bill's id. A pending charge and the ledger row it posts as have different ids at the portal, and
 /// a position holds this one, so it is built from what makes the two one bill: its day and amount.
-/// Two of one day and amount are told apart by count.
+/// `statements` numbers a second of one day and amount.
 fn bill_id(day: &str, amount: &Money) -> String {
     format!("{day}:{}", amount.amount)
 }
@@ -422,6 +423,15 @@ impl<R: Reads> UtilitySource for Source<R> {
             }
         }
         newest_first(&mut bills, |b| b.date.as_deref().or(b.due_date.as_deref()));
+        // Two of one day and amount are two bills, and a reader of `id` has to be able to tell.
+        let mut repeats: HashMap<String, u32> = HashMap::new();
+        for bill in &mut bills {
+            let nth = repeats.entry(bill.id.clone()).or_default();
+            *nth += 1;
+            if *nth > 1 {
+                bill.id = format!("{}:{nth}", bill.id);
+            }
+        }
         Ok(bills)
     }
 

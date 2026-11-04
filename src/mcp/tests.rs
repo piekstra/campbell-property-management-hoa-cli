@@ -498,6 +498,23 @@ fn a_bill_keeps_its_id_when_its_charge_posts() {
     assert_eq!(id_of(pending), id_of(posted));
 }
 
+/// Two charges of one day and amount are two bills, across pages too.
+#[test]
+fn two_bills_of_one_day_and_amount_have_their_own_ids() {
+    let mut fixtures = Fixtures::new();
+    fixtures.ledger.clear();
+    let charge = fixtures.charges[0].clone();
+    fixtures.charges = json!([charge, charge]);
+    let tools = tools_over(fixtures);
+    let args = json!({"since": "2026-10-01", "until": "2026-10-01", "limit": 1,
+                      "response_format": "detailed"});
+    let first = ok(&tools, "campbell_bills", args.clone());
+    let mut next = args;
+    next["cursor"] = first["next_cursor"].clone();
+    let second = ok(&tools, "campbell_bills", next);
+    assert_ne!(first["items"][0]["id"], second["items"][0]["id"]);
+}
+
 /// A cursor issued before this version holds a count, and is read as one.
 #[test]
 fn an_earlier_versions_cursor_still_continues_as_the_count_it_holds() {
