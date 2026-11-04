@@ -420,6 +420,56 @@ fn requests_are_open_ones_unless_asked() {
     assert_eq!(got["items"][0]["id"], 1040);
 }
 
+/// A page boundary falls inside a day, and a request is filed before the next page. A cursor holds
+/// no state at the portal, so a second set of fixtures stands for the later read.
+#[test]
+fn a_request_filed_between_pages_repeats_nothing_and_skips_nothing() {
+    let template = Fixtures::new().requests[0].clone();
+    let row = |id: u64, date: &str| {
+        let mut row = template.clone();
+        row["id"] = json!(id);
+        row["submitted"] = json!(date);
+        row
+    };
+    let over = |rows: Vec<Value>| {
+        let mut fixtures = Fixtures::new();
+        fixtures.requests = rows;
+        tools_over(fixtures)
+    };
+    let before = vec![
+        row(4, "2026-03-04"),
+        row(3, "2026-03-03"),
+        row(2, "2026-03-03"),
+        row(1, "2026-03-01"),
+    ];
+    let mut after = vec![row(5, "2026-03-05")];
+    after.extend(before.clone());
+    let args = json!({"limit": 2, "include_closed": true, "response_format": "detailed"});
+    let ids = |page: &Value| -> Vec<u64> {
+        page["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|i| i["id"].as_u64().unwrap())
+            .collect()
+    };
+
+    let first = ok(&over(before), "campbell_requests", args.clone());
+    let mut seen = ids(&first);
+    assert_eq!(seen[0], 4);
+    let later = over(after);
+    let mut cursor = first["next_cursor"].clone();
+    while cursor.is_string() {
+        let mut next = args.clone();
+        next["cursor"] = cursor;
+        let page = ok(&later, "campbell_requests", next);
+        seen.extend(ids(&page));
+        cursor = page["next_cursor"].clone();
+    }
+    seen.sort_unstable();
+    assert_eq!(seen, [1, 2, 3, 4]);
+}
+
 #[test]
 fn a_request_row_that_changed_shape_is_an_error() {
     let mut fixtures = Fixtures::new();

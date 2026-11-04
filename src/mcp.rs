@@ -25,7 +25,8 @@ use std::sync::Arc;
 use pk_cli_config::ConfigStore;
 use pk_cli_core::{dates, CliError, Money};
 use pk_cli_mcp::{
-    parse_args, ListArgs, Page, PageRequest, Server, ToolDef, ToolError, ToolOutput, Toolset,
+    parse_args, ListArgs, Order, Page, PageRequest, PositionKey, PositionRequest, Server, ToolDef,
+    ToolError, ToolOutput, Toolset,
 };
 use pk_cli_secrets::{CredentialStore, KeychainRead, SecretResolver, SecretSpec};
 use pk_cli_utility::mcp::{UtilityAccount, UtilitySource, UtilityTools};
@@ -587,7 +588,7 @@ impl<R: Reads> CampbellTools<R> {
         let args: RequestArgs = parse_args(args)?;
         let (since, until) = bounds(args.since.as_deref(), args.until.as_deref())?;
         let include_closed = args.include_closed.unwrap_or(false);
-        let page = PageRequest::new(
+        let page = PositionRequest::new(
             &args.list,
             &RequestFilter {
                 since: since.as_deref(),
@@ -609,17 +610,24 @@ impl<R: Reads> CampbellTools<R> {
             {
                 continue;
             }
-            items.push(RequestItem {
-                submitted,
-                kind: text_of(&row, "type"),
-                subject: text_of(&row, "subject"),
-                status: text_of(&row, "status"),
-                closed,
-                id: row.get("id").and_then(Value::as_u64).filter(|_| detailed),
-            });
+            let id = row.get("id").and_then(Value::as_u64);
+            let key = PositionKey::new(
+                submitted.as_str(),
+                &id.map(|i| i.to_string()).unwrap_or_default(),
+            );
+            items.push((
+                key,
+                RequestItem {
+                    submitted,
+                    kind: text_of(&row, "type"),
+                    subject: text_of(&row, "subject"),
+                    status: text_of(&row, "status"),
+                    closed,
+                    id: id.filter(|_| detailed),
+                },
+            ));
         }
-        newest_first(&mut items, |r| Some(r.submitted.as_str()));
-        ToolOutput::new(&page.page(items, "since/until")?)
+        ToolOutput::new(&page.page(items, Order::Descending, "since/until")?)
     }
 
     fn documents(&self, args: Value) -> Result<ToolOutput, ToolError> {
@@ -768,7 +776,7 @@ impl<R: Reads> Toolset for CampbellTools<R> {
                 "campbell_requests",
                 "Campbell HOA requests",
                 "Lists the homeowner requests the user submitted (work orders, architectural \
-                 applications, questions), newest first. Use it to see where a request stands. \
+                 applications, questions), newest day first. Use it to see where a request stands. \
                  Items carry submitted, kind, subject, status and closed (detailed adds id). \
                  Open ones only unless include_closed.",
             )
